@@ -1,0 +1,173 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ═══════════════════════════════════════════════════
+   موج گالری — Moj Gallery Design Tokens
+   Boney White + Ocean Blue Palette
+   ═══════════════════════════════════════════════════ */
+
+@theme inline {
+  /* Typography */
+  --font-sans: var(--font-vazir), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono);
+
+  /* Surfaces — boney white warmth */
+  --color-surface: #faf8f5;
+  --color-surface-elevated: #f5f2ed;
+  --color-surface-sunken: #ede9e3;
+
+  /* Primary text — dark navy */
+  --color-primary: #1a2a3a;
+  --color-primary-muted: #5a6a7a;
+  --color-primary-subtle: #8a96a4;
+
+  /* Accent — ocean blue */
+  --color-accent: #3b7dd8;
+  --color-accent-hover: #2d6bc0;
+  --color-accent-subtle: #eef4fb;
+  --color-on-accent: #ffffff;
+
+  /* Feedback */
+  --color-success: #2d8a5f;
+  --color-error: #c94444;
+
+  /* Borders */
+  --color-border-default: #e4dfd9;
+  --color-border-strong: #d5cfc8;
+
+  /* Shadcn compatibility aliases */
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-primary);
+  --color-card: #ffffff;
+  --color-card-foreground: var(--color-primary);
+  --color-popover: #ffffff;
+  --color-popover-foreground: var(--color-primary);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--color-surface-elevated);
+  --color-secondary-foreground: var(--color-primary);
+  --color-muted: var(--color-surface-sunken);
+  --color-muted-foreground: var(--color-primary-muted);
+  --color-accent-foreground: var(--color-on-accent);
+  --color-destructive: var(--color-error);
+  --color-border: var(--color-border-default);
+  --color-input: var(--color-border-default);
+  --color-ring: var(--color-accent);
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-surface text-primary;
+    font-feature-settings: "ss01";
+  }
+
+  /* Smooth scroll for the whole page */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  /* Pulse animation for live price indicator */
+  .animate-pulse-dot {
+    animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(0.8);
+    }
+  }
+
+  /* Slide-in from bottom for mobile filter drawer */
+  .slide-in-bottom {
+    animation: slide-in-bottom 0.3s ease-out;
+  }
+
+  @keyframes slide-in-bottom {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* Fade-in overlay */
+  .fade-in {
+    animation: fade-in 0.2s ease-out;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Cart drawer slide */
+  .slide-in-end {
+    animation: slide-in-end 0.3s ease-out;
+  }
+
+  @keyframes slide-in-end {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  /* RTL-aware slide (from start side) */
+  .slide-in-start {
+    animation: slide-in-start 0.3s ease-out;
+  }
+
+  @keyframes slide-in-start {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Custom scrollbar for filter panels */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--color-border-strong);
+    border-radius: 999px;
+  }
+}
