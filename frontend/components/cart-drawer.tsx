@@ -123,7 +123,7 @@ export default function CartDrawer() {
                         {item.product.name}
                       </Link>
                       <p className="mt-1 text-xs text-primary-muted">
-                        {formatPriceWithCurrency(item.product.calculated_price)}
+                        {formatPriceWithCurrency(item.product.current_price)}
                       </p>
 
                       {/* Quantity controls */}
@@ -157,7 +157,7 @@ export default function CartDrawer() {
                     {/* Line total + remove */}
                     <div className="flex flex-col items-end gap-1">
                       <span className="text-xs font-medium text-primary">
-                        {formatPriceWithCurrency(item.product.calculated_price * item.quantity)}
+                        {formatPriceWithCurrency(item.product.current_price * item.quantity)}
                       </span>
                       <button
                         type="button"

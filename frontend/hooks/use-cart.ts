@@ -41,7 +41,7 @@ export function useCart() {
               : c
           );
         }
-        return [...old, { id: Date.now(), product_id: item.product_id, quantity: item.quantity, product: { name: '', slug: '', calculated_price: 0, images: [] } }];
+        return [...old, { id: Date.now(), product_id: item.product_id, quantity: item.quantity, product: { name: '', slug: '', current_price: 0, images: [] } }];
       });
       return { previous };
     },
@@ -111,7 +111,7 @@ export function useCart() {
 
   const itemCount = (query.data ?? []).reduce((sum, item) => sum + item.quantity, 0);
   const total = (query.data ?? []).reduce(
-    (sum, item) => sum + item.product.calculated_price * item.quantity,
+    (sum, item) => sum + item.product.current_price * item.quantity,
     0
   );
 

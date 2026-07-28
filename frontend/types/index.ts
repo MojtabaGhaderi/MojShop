@@ -35,7 +35,7 @@ export interface Product {
   category: Pick<Category, 'id' | 'name' | 'slug'>;
   materials: Material[];
   images: ProductImage[];
-  calculated_price: number;
+  current_price: number;
 }
 
 export interface ProductListItem {
@@ -48,7 +48,7 @@ export interface ProductListItem {
   category: Pick<Category, 'id' | 'name' | 'slug'>;
   materials: Material[];
   images: ProductImage[];
-  calculated_price: number;
+  current_price: number;
 }
 
 export interface ProductsResponse {
@@ -65,7 +65,7 @@ export interface CartItem {
   product: {
     name: string;
     slug: string;
-    calculated_price: number;
+    current_price: number;
     images: ProductImage[];
   };
 }

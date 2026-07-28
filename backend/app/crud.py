@@ -281,36 +281,35 @@ def clear_cart(db: Session, user_id: int):
 
 # --- Orders ---
 
-def create_order(db: Session, user_id: int, address_id: int, cart_items: list):
+async def create_order(db: Session, user_id: int, address_id: int, cart_items: list):
     # Calculate totals
     subtotal = 0.0
     order_items_data = []
-    
+
     for item in cart_items:
         product = item.product
         # Get current price
         from app.services.price_service import fetch_live_prices
-        import asyncio
-        prices = asyncio.run(fetch_live_prices())
-        
+        prices = await fetch_live_prices()
+
         current_price = product.base_price
         for mat in product.materials:
             if mat.metal_type.value != "none":
                 rate = prices.get(f"{mat.metal_type.value}_per_gram", 0)
                 current_price += mat.weight_grams * rate
-        
+
         unit_price = round(current_price, 2)
         line_total = unit_price * item.quantity
         subtotal += line_total
-        
+
         # Snapshot materials
         materials_snapshot = [
             {"metal_type": m.metal_type.value, "weight_grams": m.weight_grams, "display_name": m.display_name}
             for m in product.materials
         ]
-        
+
         primary_image = next((img.url for img in product.images if img.is_primary), None)
-        
+
         order_items_data.append({
             "product_name": product.name,
             "product_slug": product.slug,
@@ -319,11 +318,11 @@ def create_order(db: Session, user_id: int, address_id: int, cart_items: list):
             "materials_snapshot": materials_snapshot,
             "image_url": primary_image,
         })
-    
+
     shipping_cost = 0.0  # TODO: calculate based on weight/destination
     tax = 0.0  # TODO: calculate tax
     total = subtotal + shipping_cost + tax
-    
+
     db_order = models.Order(
         user_id=user_id,
         address_id=address_id,
@@ -335,13 +334,13 @@ def create_order(db: Session, user_id: int, address_id: int, cart_items: list):
     )
     db.add(db_order)
     db.flush()
-    
+
     for item_data in order_items_data:
         db.add(models.OrderItem(order_id=db_order.id, **item_data))
-    
+
     # Clear cart
     db.query(models.CartItem).filter(models.CartItem.user_id == user_id).delete()
-    
+
     # Generate invoice number
     invoice_number = f"INV-{db_order.id:06d}"
     db.add(models.Invoice(
@@ -349,7 +348,7 @@ def create_order(db: Session, user_id: int, address_id: int, cart_items: list):
         invoice_number=invoice_number,
         status=models.InvoiceStatus.PENDING,
     ))
-    
+
     db.commit()
     db.refresh(db_order)
     return db.query(models.Order).options(
@@ -357,7 +356,6 @@ def create_order(db: Session, user_id: int, address_id: int, cart_items: list):
         joinedload(models.Order.items),
         joinedload(models.Order.invoice),
     ).filter(models.Order.id == db_order.id).first()
-
 
 def get_orders_by_user(db: Session, user_id: int):
     return (

@@ -2,21 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  reactStrictMode: false,
   images: {
-    unoptimized: true,
+    unoptimized: false,
   },
-  async rewrites() {
-    return [
-      {
-        source: "/uploads/:path*",
-        destination: "/api/backend/uploads/:path*",
-      },
-    ];
+  // Silence the workspace root warning
+  turbopack: {
+    root: process.cwd(),
   },
+  // Allow dev from my local network IP
+  allowedDevOrigins: ['192.168.1.60'],
 };
 
 export default nextConfig;

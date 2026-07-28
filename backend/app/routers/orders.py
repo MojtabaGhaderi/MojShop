@@ -8,8 +8,9 @@ from app.dependencies import get_current_user
 router = APIRouter(prefix="/orders", tags=["orders"])
 
 
+
 @router.post("/", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED)
-def create_order(
+async def create_order(
     order: schemas.OrderCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -24,13 +25,12 @@ def create_order(
     if not cart_items:
         raise HTTPException(status_code=400, detail="Cart is empty")
     
-    db_order = crud.create_order(db, current_user.id, order.address_id, cart_items)
+    db_order = await crud.create_order(db, current_user.id, order.address_id, cart_items)
     
     # Re-fetch with relationships loaded
     db_order = crud.get_order_by_id(db, db_order.id, current_user.id)
     
     return db_order
-
 
 @router.get("/", response_model=list[schemas.OrderResponse])
 def get_orders(

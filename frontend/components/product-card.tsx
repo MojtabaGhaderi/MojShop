@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ProductListItem } from '@/types';
+import { BACKEND_URL } from '@/lib/constants';
 import { formatPriceWithCurrency, getPrimaryImage } from '@/lib/utils';
 import { IMAGE_DIMENSIONS } from '@/types';
 
@@ -11,7 +12,9 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const primaryImage = getPrimaryImage(product.images);
+  const rawImage = getPrimaryImage(product.images);
+  // Prefix with backend URL so images load from FastAPI, not Next.js dev server
+  const primaryImage = rawImage ? `${BACKEND_URL}${rawImage}` : null;
   const isOutOfStock = product.stock_quantity === 0;
 
   return (
@@ -70,7 +73,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
 
         <p className="mt-2 text-sm font-bold text-accent">
-          {formatPriceWithCurrency(product.calculated_price)}
+          {formatPriceWithCurrency(product.current_price)}
         </p>
 
         {product.materials.length > 0 && (

@@ -86,7 +86,7 @@ export default function CartPage() {
                   {item.product.name}
                 </Link>
                 <p className="mt-1 text-sm text-primary-muted">
-                  {formatPriceWithCurrency(item.product.calculated_price)}
+                  {formatPriceWithCurrency(item.product.current_price)}
                 </p>
 
                 <div className="mt-3 flex items-center justify-between">
@@ -130,7 +130,7 @@ export default function CartPage() {
 
               <div className="flex w-28 shrink-0 flex-col items-end justify-between">
                 <span className="text-sm font-bold text-primary">
-                  {formatPriceWithCurrency(item.product.calculated_price * item.quantity)}
+                  {formatPriceWithCurrency(item.product.current_price * item.quantity)}
                 </span>
               </div>
             </li>

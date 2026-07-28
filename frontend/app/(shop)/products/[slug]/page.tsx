@@ -159,7 +159,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
               productId={product.id}
               productName={product.name}
               basePrice={product.base_price}
-              calculatedPrice={product.calculated_price}
+              calculatedPrice={product.current_price}
               materialWeights={product.materials.map((m) => ({
                 metal_type: m.metal_type,
                 weight_grams: m.weight_grams,
