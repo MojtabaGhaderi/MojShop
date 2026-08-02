@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { NAV_LINKS, SITE_NAME } from '@/lib/constants';
 import { useCart } from '@/hooks/use-cart';
+import { useAuth } from '@/hooks/use-auth';
 import MobileNav from './mobile-nav';
 
 export default function Header() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { itemCount } = useCart();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
 
   return (
     <>
@@ -55,9 +58,9 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Actions: search + cart */}
+          {/* Actions: search + cart + auth */}
           <div className="flex items-center gap-2">
-            {/* Search icon (mobile) */}
+            {/* Search icon */}
             <Link
               href="/products"
               className="flex h-10 w-10 items-center justify-center rounded-lg text-primary transition-colors hover:bg-surface-sunken"
@@ -104,11 +107,112 @@ export default function Header() {
                 </span>
               )}
             </Link>
+
+            {/* Auth section */}
+            {isLoading ? (
+              <div className="hidden h-10 w-10 animate-pulse rounded-lg bg-surface-sunken sm:block" />
+            ) : isAuthenticated ? (
+              /* Logged in — user dropdown */
+              <div className="relative hidden sm:block">
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-primary transition-colors hover:bg-surface-sunken"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <span className="max-w-[80px] truncate">
+                    {user?.full_name || user?.email || 'کاربر'}
+                  </span>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`transition-transform ${userMenuOpen ? 'rotate-180' : ''}`}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+
+                {userMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setUserMenuOpen(false)}
+                    />
+                    <div className="absolute end-0 top-full z-20 mt-1 w-44 rounded-lg border border-border-default bg-surface py-1 shadow-lg">
+                      <Link
+                        href="/profile"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="block px-4 py-2 text-sm text-primary transition-colors hover:bg-surface-sunken"
+                      >
+                        پروفایل
+                      </Link>
+                      <Link
+                        href="/orders"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="block px-4 py-2 text-sm text-primary transition-colors hover:bg-surface-sunken"
+                      >
+                        سفارشات
+                      </Link>
+                      <div className="my-1 border-t border-border-default" />
+                      <button
+                        onClick={() => {
+                          logout();
+                          setUserMenuOpen(false);
+                        }}
+                        className="block w-full px-4 py-2 text-right text-sm text-red-500 transition-colors hover:bg-surface-sunken"
+                      >
+                        خروج
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              /* Logged out — login/register buttons */
+              <div className="hidden items-center gap-2 sm:flex">
+                <Link
+                  href="/login"
+                  className="flex h-10 items-center rounded-lg px-3 text-sm font-medium text-primary transition-colors hover:bg-surface-sunken"
+                >
+                  ورود
+                </Link>
+                <Link
+                  href="/register"
+                  className="flex h-10 items-center rounded-lg bg-accent px-3 text-sm font-medium text-white transition-colors hover:bg-accent/90"
+                >
+                  ثبت‌نام
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+      <MobileNav
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        user={user}
+        isAuthenticated={isAuthenticated}
+        logout={logout}
+      />
     </>
   );
 }

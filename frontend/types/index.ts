@@ -60,9 +60,9 @@ export interface ProductsResponse {
 
 export interface CartItem {
   id: number;
-  product_id: number;
   quantity: number;
   product: {
+    id: number;
     name: string;
     slug: string;
     current_price: number;

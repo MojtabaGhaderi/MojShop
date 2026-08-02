@@ -95,8 +95,8 @@ export default function CartPage() {
                       type="button"
                       onClick={() =>
                         item.quantity > 1
-                          ? updateItem({ product_id: item.product_id, quantity: item.quantity - 1 })
-                          : removeItem(item.product_id)
+                          ? updateItem({ product_id: item.product.id, quantity: item.quantity - 1 })
+                          : removeItem(item.product.id)
                       }
                       className="flex h-9 w-9 items-center justify-center text-sm hover:bg-surface-sunken"
                       aria-label="کاهش"
@@ -109,7 +109,7 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        updateItem({ product_id: item.product_id, quantity: item.quantity + 1 })
+                        updateItem({ product_id: item.product.id, quantity: item.quantity + 1 })
                       }
                       className="flex h-9 w-9 items-center justify-center text-sm hover:bg-surface-sunken"
                       aria-label="افزایش"
@@ -120,7 +120,7 @@ export default function CartPage() {
 
                   <button
                     type="button"
-                    onClick={() => removeItem(item.product_id)}
+                    onClick={() => removeItem(item.product.id)}
                     className="text-xs text-error transition-colors hover:underline"
                   >
                     حذف

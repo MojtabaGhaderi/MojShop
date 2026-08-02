@@ -3,16 +3,23 @@
 import Link from 'next/link';
 import { useEffect, useCallback } from 'react';
 import { NAV_LINKS, SITE_NAME } from '@/lib/constants';
-import { useAuth } from '@/hooks/use-auth';
+import type { AuthUser } from '@/types';
 
 interface MobileNavProps {
   open: boolean;
   onClose: () => void;
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  logout: () => void;
 }
 
-export default function MobileNav({ open, onClose }: MobileNavProps) {
-  const { isAuthenticated, user, logout } = useAuth();
-
+export default function MobileNav({
+  open,
+  onClose,
+  user,
+  isAuthenticated,
+  logout,
+}: MobileNavProps) {
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -66,24 +73,52 @@ export default function MobileNav({ open, onClose }: MobileNavProps) {
         {/* User section */}
         <div className="border-b border-border-default px-4 py-3">
           {isAuthenticated && user ? (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-primary">{user.full_name}</span>
-              <button
-                type="button"
-                onClick={logout}
-                className="text-xs text-error transition-colors hover:underline"
-              >
-                خروج
-              </button>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-primary">{user.full_name || user.email}</p>
+              <div className="flex gap-3">
+                <Link
+                  href="/profile"
+                  onClick={onClose}
+                  className="text-xs text-accent hover:underline"
+                >
+                  پروفایل
+                </Link>
+                <Link
+                  href="/orders"
+                  onClick={onClose}
+                  className="text-xs text-accent hover:underline"
+                >
+                  سفارشات
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    onClose();
+                  }}
+                  className="text-xs text-red-500 hover:underline"
+                >
+                  خروج
+                </button>
+              </div>
             </div>
           ) : (
-            <Link
-              href="/login"
-              onClick={onClose}
-              className="block text-sm font-medium text-accent transition-colors hover:text-accent-hover"
-            >
-              ورود / ثبت‌نام
-            </Link>
+            <div className="flex gap-3">
+              <Link
+                href="/login"
+                onClick={onClose}
+                className="text-sm font-medium text-accent hover:underline"
+              >
+                ورود
+              </Link>
+              <Link
+                href="/register"
+                onClick={onClose}
+                className="text-sm font-medium text-accent hover:underline"
+              >
+                ثبت‌نام
+              </Link>
+            </div>
           )}
         </div>
 

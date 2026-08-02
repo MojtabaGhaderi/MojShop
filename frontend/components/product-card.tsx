@@ -13,8 +13,11 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const rawImage = getPrimaryImage(product.images);
-  // Prefix with backend URL so images load from FastAPI, not Next.js dev server
-  const primaryImage = rawImage ? `${BACKEND_URL}${rawImage}` : null;
+  const primaryImage = rawImage
+    ? (rawImage.startsWith('http://') || rawImage.startsWith('https://')
+      ? rawImage
+      : `${BACKEND_URL}${rawImage}`)
+    : null;
   const isOutOfStock = product.stock_quantity === 0;
 
   return (

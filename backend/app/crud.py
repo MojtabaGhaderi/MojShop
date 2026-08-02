@@ -96,6 +96,33 @@ def get_products_filtered(
     return query.offset(skip).limit(limit).all()
 
 
+def get_products_count(
+    db: Session,
+    category_slug: str | None = None,
+    metal_type: str | None = None,
+    search: str | None = None,
+) -> int:
+    query = db.query(models.Product).filter(models.Product.is_active == True)
+
+    if category_slug:
+        query = query.join(models.Category).filter(
+            models.Category.slug == category_slug
+        )
+
+    if metal_type:
+        query = query.join(models.ProductMaterial).filter(
+            models.ProductMaterial.metal_type == metal_type
+        )
+
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            models.Product.name.ilike(search_term)
+            | models.Product.description.ilike(search_term)
+        )
+
+    return query.count()
+
 def get_product_by_slug(db: Session, slug: str):
     return (
         db.query(models.Product)
