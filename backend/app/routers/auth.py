@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
@@ -6,6 +6,7 @@ from app import schemas, models
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.services.auth import get_password_hash, verify_password, create_access_token
+from datetime import timedelta
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -46,8 +47,20 @@ def login(user_in: LoginRequest, db: Session = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(status_code=400, detail="User account is inactive")
 
-    token = create_access_token(user.id)
-    return {"access_token": token, "token_type": "bearer"}
+    access_token_expires = timedelta(minutes=30)
+    access_token = create_access_token(user_id=user.id, expires_delta=access_token_expires)
+
+    response = Response(content="Login successful", status_code=200)
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        secure=False,       # Keep False for local HTTP
+        samesite="lax",     # Now works perfectly because host matches!
+        max_age=1800,
+        path="/"
+    )
+    return response
 
 
 @router.get("/me", response_model=schemas.UserResponse)

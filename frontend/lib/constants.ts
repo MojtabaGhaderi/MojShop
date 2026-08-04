@@ -1,6 +1,6 @@
 import type { MetalRate, MetalType } from '@/types';
 
-export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://192.168.1.60:8000';
 
 export const METAL_RATES: Record<MetalType, { rate_per_gram: number; label: string }> = {
   gold: { rate_per_gram: 85.5, label: 'طلا' },
