@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api, setTokens, clearTokens, getRefreshToken } from '@/lib/api';
 import type { AuthResponse, AuthUser, LoginRequest, RegisterRequest } from '@/types';
 
 const AUTH_KEY = 'auth';
@@ -9,22 +9,27 @@ const AUTH_KEY = 'auth';
 export function useAuth() {
   const queryClient = useQueryClient();
 
-  const userQuery = useQuery<AuthUser | null>({    queryKey: [AUTH_KEY, 'me'],    queryFn: async () => {      const token = localStorage.getItem('auth_token');      if (!token) return null;
+  const userQuery = useQuery<AuthUser | null>({
+    queryKey: [AUTH_KEY, 'me'],
+    queryFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return null;
       try {
         const { data } = await api.get<AuthUser>('/auth/me');
         return data;
       } catch {
-        localStorage.removeItem('auth_token');
+        clearTokens();
         return null;
       }
-    },    retry: false,
+    },
+    retry: false,
     staleTime: 5 * 60_000,
   });
 
   const loginMutation = useMutation({
     mutationFn: async (creds: LoginRequest) => {
       const { data } = await api.post<AuthResponse>('/auth/login', creds);
-      localStorage.setItem('auth_token', data.access_token);
+      setTokens(data.access_token, data.refresh_token);
       return data;
     },
     onSuccess: () => {
@@ -35,7 +40,7 @@ export function useAuth() {
   const registerMutation = useMutation({
     mutationFn: async (creds: RegisterRequest) => {
       const { data } = await api.post<AuthResponse>('/auth/register', creds);
-      localStorage.setItem('auth_token', data.access_token);
+      setTokens(data.access_token, data.refresh_token);
       return data;
     },
     onSuccess: () => {
@@ -43,8 +48,16 @@ export function useAuth() {
     },
   });
 
-  function logout() {
-    localStorage.removeItem('auth_token');
+  async function logout() {
+    const refresh = getRefreshToken();
+    if (refresh) {
+      try {
+        await api.post('/auth/logout', { refresh_token: refresh });
+      } catch {
+        // ignore — clear local anyway
+      }
+    }
+    clearTokens();
     queryClient.setQueryData<AuthUser | null>([AUTH_KEY, 'me'], null);
     queryClient.invalidateQueries({ queryKey: [AUTH_KEY] });
     queryClient.invalidateQueries({ queryKey: ['cart'] });

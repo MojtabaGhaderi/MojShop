@@ -105,6 +105,27 @@ class User(Base):
     orders: Mapped[list["Order"]] = relationship(back_populates="user")
     cart_items: Mapped[list["CartItem"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+    back_populates="user", cascade="all, delete-orphan")
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user: Mapped["User"] = relationship(back_populates="refresh_tokens")
+
+    # Store only the hash of the opaque token
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+    revoked_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    # For rotation chain / reuse detection
+    replaced_by_id: Mapped[int | None] = mapped_column(ForeignKey("refresh_tokens.id"), nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+    # Optional metadata
+    user_agent: Mapped[str | None] = mapped_column(String(255))
+    ip_address: Mapped[str | None] = mapped_column(String(45))
 
 class Address(Base):
     __tablename__ = "addresses"
@@ -186,3 +207,4 @@ class Invoice(Base):
     pdf_url: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[InvoiceStatus] = mapped_column(Enum(InvoiceStatus), default=InvoiceStatus.PENDING)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
