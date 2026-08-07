@@ -56,9 +56,6 @@ def get_order(
 
 
 
-
-router = APIRouter(prefix="/orders", tags=["orders"])
-
 @router.post("/checkout")
 def mock_checkout(
     current_user: User = Depends(get_current_user), 
