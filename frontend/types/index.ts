@@ -93,9 +93,13 @@ export interface OrderDetail extends Order {
 export interface AuthUser {
   id: number;
   email: string;
-  full_name: string;
+  full_name: string | null;
   phone: string | null;
+  is_admin: boolean;
+  is_active: boolean;
+  created_at: string;
 }
+
 
 export interface LoginRequest {
   email: string;
@@ -141,3 +145,46 @@ export const IMAGE_DIMENSIONS: Record<ImageSize, { width: number; height: number
   medium: { width: 800, height: 800 },
   large: { width: 1600, height: 1600 },
 };
+
+
+
+export interface UserUpdate {
+  email?: string;
+  full_name?: string;
+  phone?: string;
+  current_password?: string;
+  new_password?: string;
+}
+
+export interface Address {
+  id: number;
+  user_id: number;
+  label: string | null;
+  line_1: string;
+  line_2: string | null;
+  city: string;
+  postal_code: string;
+  country: string;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface AddressCreate {
+  label?: string;
+  line_1: string;
+  line_2?: string;
+  city: string;
+  postal_code: string;
+  country?: string;
+  is_default?: boolean;
+}
+
+export interface AddressUpdate {
+  label?: string;
+  line_1?: string;
+  line_2?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  is_default?: boolean;
+}
