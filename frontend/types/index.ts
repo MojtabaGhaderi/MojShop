@@ -79,16 +79,7 @@ export interface CartItemUpdate {
   quantity: number;
 }
 
-export interface Order {
-  id: number;
-  status: string;
-  total_price: number;
-  created_at: string;
-}
-
-export interface OrderDetail extends Order {
-  items: CartItem[];
-}
+// --- Auth ---
 
 export interface AuthUser {
   id: number;
@@ -99,7 +90,6 @@ export interface AuthUser {
   is_active: boolean;
   created_at: string;
 }
-
 
 export interface LoginRequest {
   email: string;
@@ -119,35 +109,6 @@ export interface AuthResponse {
   token_type: string;
 }
 
-export interface MetalRate {
-  metal_type: MetalType;
-  rate_per_gram: number;
-  label: string;
-}
-
-export interface PriceResponse {
-  rates: MetalRate[];
-  updated_at: string;
-}
-
-export interface ProductFilters {
-  category?: string;
-  metal?: MetalType;
-  search?: string;
-  skip?: number;
-  limit?: number;
-}
-
-export type ImageSize = 'thumb' | 'medium' | 'large';
-
-export const IMAGE_DIMENSIONS: Record<ImageSize, { width: number; height: number }> = {
-  thumb: { width: 300, height: 300 },
-  medium: { width: 800, height: 800 },
-  large: { width: 1600, height: 1600 },
-};
-
-
-
 export interface UserUpdate {
   email?: string;
   full_name?: string;
@@ -155,6 +116,8 @@ export interface UserUpdate {
   current_password?: string;
   new_password?: string;
 }
+
+// --- Addresses ---
 
 export interface Address {
   id: number;
@@ -188,3 +151,79 @@ export interface AddressUpdate {
   country?: string;
   is_default?: boolean;
 }
+
+// --- Orders ---
+
+export type OrderStatus =
+  | 'pending'
+  | 'paid'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled';
+
+export interface OrderItem {
+  id: number;
+  product_name: string;
+  product_slug: string;
+  unit_price: number;
+  quantity: number;
+  materials_snapshot?: unknown;
+  image_url: string | null;
+}
+
+export interface Invoice {
+  id: number;
+  order_id: number;
+  invoice_number: string;
+  pdf_url: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface Order {
+  id: number;
+  user_id: number;
+  address: Address;
+  status: OrderStatus;
+  items: OrderItem[];
+  invoice: Invoice | null;
+  subtotal: number;
+  shipping_cost: number;
+  tax: number;
+  total: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderCreate {
+  address_id: number;
+}
+
+// --- Prices / filters ---
+
+export interface MetalRate {
+  metal_type: MetalType;
+  rate_per_gram: number;
+  label: string;
+}
+
+export interface PriceResponse {
+  rates: MetalRate[];
+  updated_at: string;
+}
+
+export interface ProductFilters {
+  category?: string;
+  metal?: MetalType;
+  search?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export type ImageSize = 'thumb' | 'medium' | 'large';
+
+export const IMAGE_DIMENSIONS: Record<ImageSize, { width: number; height: number }> = {
+  thumb: { width: 300, height: 300 },
+  medium: { width: 800, height: 800 },
+  large: { width: 1600, height: 1600 },
+};

@@ -260,7 +260,10 @@ def delete_address(db: Session, address: models.Address):
 def get_cart_items(db: Session, user_id: int):
     return (
         db.query(models.CartItem)
-        .options(joinedload(models.CartItem.product).joinedload(models.Product.images))
+        .options(
+            joinedload(models.CartItem.product).joinedload(models.Product.images),
+            joinedload(models.CartItem.product).joinedload(models.Product.materials),
+        )
         .filter(models.CartItem.user_id == user_id)
         .all()
     )
@@ -308,16 +311,20 @@ def clear_cart(db: Session, user_id: int):
 
 # --- Orders ---
 
+
 async def create_order(db: Session, user_id: int, address_id: int, cart_items: list):
-    # Calculate totals
+    from app.services.price_service import fetch_live_prices
+
+    prices = await fetch_live_prices()
     subtotal = 0.0
     order_items_data = []
 
     for item in cart_items:
         product = item.product
-        # Get current price
-        from app.services.price_service import fetch_live_prices
-        prices = await fetch_live_prices()
+        if not product or not product.is_active:
+            raise ValueError(f"Product unavailable: {item.product_id}")
+        if product.stock_quantity < item.quantity:
+            raise ValueError(f"Insufficient stock for {product.name}")
 
         current_price = product.base_price
         for mat in product.materials:
@@ -326,16 +333,19 @@ async def create_order(db: Session, user_id: int, address_id: int, cart_items: l
                 current_price += mat.weight_grams * rate
 
         unit_price = round(current_price, 2)
-        line_total = unit_price * item.quantity
-        subtotal += line_total
+        subtotal += unit_price * item.quantity
 
-        # Snapshot materials
         materials_snapshot = [
-            {"metal_type": m.metal_type.value, "weight_grams": m.weight_grams, "display_name": m.display_name}
+            {
+                "metal_type": m.metal_type.value,
+                "weight_grams": m.weight_grams,
+                "display_name": m.display_name,
+            }
             for m in product.materials
         ]
-
         primary_image = next((img.url for img in product.images if img.is_primary), None)
+        if primary_image is None and product.images:
+            primary_image = product.images[0].url
 
         order_items_data.append({
             "product_name": product.name,
@@ -346,8 +356,11 @@ async def create_order(db: Session, user_id: int, address_id: int, cart_items: l
             "image_url": primary_image,
         })
 
-    shipping_cost = 0.0  # TODO: calculate based on weight/destination
-    tax = 0.0  # TODO: calculate tax
+        # Decrement stock
+        product.stock_quantity -= item.quantity
+
+    shipping_cost = 0.0
+    tax = 0.0
     total = subtotal + shipping_cost + tax
 
     db_order = models.Order(
@@ -365,24 +378,55 @@ async def create_order(db: Session, user_id: int, address_id: int, cart_items: l
     for item_data in order_items_data:
         db.add(models.OrderItem(order_id=db_order.id, **item_data))
 
-    # Clear cart
     db.query(models.CartItem).filter(models.CartItem.user_id == user_id).delete()
 
-    # Generate invoice number
-    invoice_number = f"INV-{db_order.id:06d}"
     db.add(models.Invoice(
         order_id=db_order.id,
-        invoice_number=invoice_number,
+        invoice_number=f"INV-{db_order.id:06d}",
         status=models.InvoiceStatus.PENDING,
     ))
 
     db.commit()
-    db.refresh(db_order)
-    return db.query(models.Order).options(
-        joinedload(models.Order.address),
-        joinedload(models.Order.items),
-        joinedload(models.Order.invoice),
-    ).filter(models.Order.id == db_order.id).first()
+    return (
+        db.query(models.Order)
+        .options(
+            joinedload(models.Order.address),
+            joinedload(models.Order.items),
+            joinedload(models.Order.invoice),
+        )
+        .filter(models.Order.id == db_order.id)
+        .first()
+    )
+
+def cancel_order(db: Session, order_id: int, user_id: int):
+    """
+    Cancel order and restore stock. Users can cancel pending orders.
+    """
+    order = db.query(models.Order).filter(
+        models.Order.id == order_id,
+        models.Order.user_id == user_id,
+        models.Order.status == models.OrderStatus.PENDING
+    ).first()
+    
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found or cannot be cancelled"
+        )
+    
+    # Restore stock
+    for item in order.items:
+        product = db.query(models.Product).filter(
+            models.Product.slug == item.product_slug
+        ).first()
+        if product:
+            product.stock_quantity += item.quantity
+    
+    order.status = models.OrderStatus.CANCELLED
+    db.commit()
+    db.refresh(order)
+    return order
+
 
 def get_orders_by_user(db: Session, user_id: int):
     return (
