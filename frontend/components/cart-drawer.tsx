@@ -45,7 +45,7 @@ export default function CartDrawer() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-1 text-sm font-medium text-primary">{item.product.name}</p>
-                      <p className="mt-1 text-sm text-primary-muted">{formatPriceWithCurrency(item.product.current_price)}</p>
+                      <p className="mt-1 text-sm text-primary-muted">{formatPriceWithCurrency(item.unitPrice)}</p>
                       <div className="mt-2 flex items-center gap-2">
                         <div className="flex items-center rounded-lg border border-border-default">
                           <button type="button" onClick={() => cart.updateItem(item.id, Math.max(1, item.quantity - 1))} className="flex h-7 w-7 items-center justify-center text-primary hover:bg-surface-sunken" aria-label="کاهش تعداد">−</button>

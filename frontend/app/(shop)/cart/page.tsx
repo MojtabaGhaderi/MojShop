@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useCart } from '@/hooks/use-cart';
+import { useShopCart } from '@/hooks/use-shop-cart';
 import { formatPriceWithCurrency, getPrimaryImage } from '@/lib/utils';
 import { IMAGE_DIMENSIONS } from '@/types';
 
 export default function CartPage() {
-  const { items, total, updateItem, removeItem, clearCart, isLoading } = useCart();
+  const { items, total, updateItem, removeItem, clearCart, isLoading } = useShopCart();
 
   if (isLoading) {
     return (
@@ -86,7 +86,7 @@ export default function CartPage() {
                   {item.product.name}
                 </Link>
                 <p className="mt-1 text-sm text-primary-muted">
-                  {formatPriceWithCurrency(item.product.current_price)}
+                  {formatPriceWithCurrency(item.unitPrice)}
                 </p>
 
                 <div className="mt-3 flex items-center justify-between">
@@ -95,8 +95,8 @@ export default function CartPage() {
                       type="button"
                       onClick={() =>
                         item.quantity > 1
-                          ? updateItem({ product_id: item.product.id, quantity: item.quantity - 1 })
-                          : removeItem(item.product.id)
+                          ? updateItem(item.id, item.quantity - 1)
+                          : removeItem(item.id)
                       }
                       className="flex h-9 w-9 items-center justify-center text-sm hover:bg-surface-sunken"
                       aria-label="کاهش"
@@ -108,9 +108,7 @@ export default function CartPage() {
                     </span>
                     <button
                       type="button"
-                      onClick={() =>
-                        updateItem({ product_id: item.product.id, quantity: item.quantity + 1 })
-                      }
+                      onClick={() => updateItem(item.id, item.quantity + 1)}
                       className="flex h-9 w-9 items-center justify-center text-sm hover:bg-surface-sunken"
                       aria-label="افزایش"
                     >
@@ -120,7 +118,7 @@ export default function CartPage() {
 
                   <button
                     type="button"
-                    onClick={() => removeItem(item.product.id)}
+                    onClick={() => removeItem(item.id)}
                     className="text-xs text-error transition-colors hover:underline"
                   >
                     حذف
@@ -130,7 +128,7 @@ export default function CartPage() {
 
               <div className="flex w-28 shrink-0 flex-col items-end justify-between">
                 <span className="text-sm font-bold text-primary">
-                  {formatPriceWithCurrency(item.product.current_price * item.quantity)}
+                  {formatPriceWithCurrency(item.unitPrice * item.quantity)}
                 </span>
               </div>
             </li>

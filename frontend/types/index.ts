@@ -61,6 +61,8 @@ export interface ProductsResponse {
 export interface CartItem {
   id: number;
   quantity: number;
+  unit_price: number;        // NEW
+  variant: CartVariant | null;  // NEW
   product: {
     id: number;
     name: string;
@@ -73,6 +75,8 @@ export interface CartItem {
 export interface CartItemAdd {
   product_id: number;
   quantity: number;
+  variant_id?: number;       // NEW
+
 }
 
 export interface CartItemUpdate {
@@ -290,7 +294,7 @@ export interface GuestOrderCreate {
   guest_name: string;
   guest_email: string;
   address: GuestAddressInput;
-  items: { product_id: number; quantity: number }[];
+  items: { product_id: number; variant_id?: number; quantity: number }[];   // was missing variant_id
   promo_code?: string;
 }
 
@@ -348,4 +352,14 @@ export interface ShopCartItem {
   quantity: number;
   product: Pick<Product, 'id' | 'name' | 'slug' | 'current_price' | 'images'>;
   unitPrice: number;      // resolved price including any variant adjustment
+}
+
+
+export interface CartVariant {
+  id: number;
+  variant_name: string;
+  sku: string | null;
+  price_adjustment: number;
+  stock_quantity: number;
+  is_active: boolean;
 }

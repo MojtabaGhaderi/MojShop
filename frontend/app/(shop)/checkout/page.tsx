@@ -160,9 +160,10 @@ export default function CheckoutPage() {
         <h2 className="text-lg font-semibold text-primary">خلاصه سبد</h2>
         <ul className="mt-3 divide-y divide-border-default">
           {cart.items.map((item) => (
-            <li key={item.key} className="flex justify-between gap-3 py-3 text-sm">
+            <li key={item.id} className="flex justify-between gap-3 py-3 text-sm">
               <span className="text-primary">{item.product.name} <span className="text-primary-muted">× {item.quantity}</span></span>
-              <span className="shrink-0 font-medium text-primary">{formatPriceWithCurrency(item.product.current_price * item.quantity)}</span>
+              {/* was: item.product.current_price * item.quantity — didn't reflect variant price adjustment */}
+              <span className="shrink-0 font-medium text-primary">{formatPriceWithCurrency(item.unitPrice * item.quantity)}</span>
             </li>
           ))}
         </ul>
