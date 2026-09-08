@@ -7,34 +7,10 @@ from app.database import get_db
 from app.services.price_service import fetch_live_prices
 
 from app.dependencies import get_current_admin
+from app.services.pricing import compute_current_price, serialize_product
 
 router = APIRouter(prefix="/products", tags=["products"])
 
-def _compute_current_price(product, prices: dict) -> float:
-    metal_value = 0.0
-    for material in product.materials:
-        if material.metal_type.value != "none":
-            rate = prices.get(f"{material.metal_type.value}_per_gram", 0)
-            metal_value += material.weight_grams * rate
-    return round(product.base_price + metal_value, 2)
-
-def _product_to_response(product, prices: dict) -> schemas.ProductResponse:
-    data = {
-        "id": product.id,
-        "name": product.name,
-        "slug": product.slug,
-        "description": product.description,
-        "base_price": product.base_price,
-        "total_weight_grams": product.total_weight_grams,
-        "stock_quantity": product.stock_quantity,
-        "is_active": product.is_active,
-        "created_at": product.created_at,
-        "category": product.category,
-        "materials": product.materials,
-        "images": product.images,
-        "current_price": _compute_current_price(product, prices),
-    }
-    return schemas.ProductResponse.model_validate(data)
 
 @router.get("/")
 async def list_products(
@@ -52,7 +28,7 @@ async def list_products(
     total = crud.get_products_count(db, category_slug=category, metal_type=metal, search=search)
     
     return {
-        "items": [_product_to_response(p, prices) for p in products],
+        "items": [serialize_product(p, prices) for p in products],
         "total": total,
         "skip": skip,
         "limit": limit,
@@ -65,7 +41,7 @@ async def get_product(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
 
     prices = await fetch_live_prices()
-    return _product_to_response(product, prices)
+    return serialize_product(product, prices)
 
 @router.post("/", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(

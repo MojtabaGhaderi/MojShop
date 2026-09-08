@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app import schemas, models
@@ -25,13 +25,42 @@ async def create_order(
         raise HTTPException(status_code=400, detail="Cart is empty")
 
     try:
-        db_order = await crud.create_order(db, current_user.id, order.address_id, cart_items)
+        db_order = await crud.create_order(db, current_user.id, order.address_id, cart_items, promo_code=order.promo_code)
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     return db_order
 
+@router.post("/guest", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED)
+async def create_guest_order_endpoint(payload: schemas.GuestOrderCreate, db: Session = Depends(get_db)):
+    from app import crud
+    try:
+        db_order = await crud.create_guest_order(
+            db,
+            guest_email=payload.guest_email,
+            guest_name=payload.guest_name,
+            address_data=payload.address.model_dump(),
+            items=[item.model_dump() for item in payload.items],
+            promo_code=payload.promo_code,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return db_order
 
+
+@router.get("/guest/{order_id}", response_model=schemas.OrderResponse)
+def get_guest_order_endpoint(
+    order_id: int,
+    email: str = Query(..., description="The guest_email used at checkout"),
+    db: Session = Depends(get_db),
+):
+    from app import crud
+    order = crud.get_guest_order(db, order_id, email)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+    
 @router.get("/", response_model=list[schemas.OrderResponse])
 def get_orders(
     db: Session = Depends(get_db),

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import datetime
 
-from app.models import MetalType, OrderStatus, InvoiceStatus
+from app.models import MetalType, OrderStatus, InvoiceStatus, PromoType
 
 
 # --- Category schemas ---
@@ -80,6 +80,8 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     materials: List[ProductMaterialCreate] = []
     images: List[ProductImageCreate] = []
+    variants: List[VariantCreate] = []
+
 
 
 class ProductUpdate(BaseModel):
@@ -92,6 +94,8 @@ class ProductUpdate(BaseModel):
     is_active: Optional[bool] = None
     materials: Optional[List[ProductMaterialCreate]] = None
     images: Optional[List[ProductImageCreate]] = None
+    variants: Optional[List[VariantCreate]] = None
+
 
 
 class ProductResponse(ProductBase):
@@ -101,6 +105,7 @@ class ProductResponse(ProductBase):
     images: List[ProductImageResponse]
     current_price: float = 0.0
     created_at: datetime
+    variants: List[VariantResponse] = []
 
     class Config:
         from_attributes = True
@@ -166,7 +171,7 @@ class AddressUpdate(BaseModel):
 
 class AddressResponse(AddressBase):
     id: int
-    user_id: int
+    user_id: Optional[int] = None
     created_at: datetime
 
     class Config:
@@ -181,7 +186,8 @@ class CartItemBase(BaseModel):
 
 
 class CartItemCreate(CartItemBase):
-    pass
+    variant_id: Optional[int] = None
+
 
 
 class CartItemUpdate(BaseModel):
@@ -192,10 +198,11 @@ class CartItemResponse(BaseModel):
     id: int
     user_id: int
     product: ProductResponse
+    variant: Optional[VariantResponse] = None
     quantity: int
+    unit_price: float
     created_at: datetime
     updated_at: datetime
-
     class Config:
         from_attributes = True
 
@@ -210,6 +217,8 @@ class OrderItemResponse(BaseModel):
     quantity: int
     materials_snapshot: Optional[list|dict] = None
     image_url: Optional[str] = None
+    variant_name: Optional[str] = None
+
 
     class Config:
         from_attributes = True
@@ -238,26 +247,107 @@ class OrderBase(BaseModel):
 
 
 class OrderCreate(OrderBase):
-    pass
+    promo_code: Optional[str] = None
 
 
 class OrderResponse(BaseModel):
     id: int
-    user_id: int
+    user_id: Optional[int] = None
+    guest_email: Optional[str] = None
+    guest_name: Optional[str] = None
     address: AddressResponse
     status: OrderStatus
     items: List[OrderItemResponse]
     invoice: Optional[InvoiceResponse] = None
     subtotal: float
+    discount_amount: float = 0.0
     shipping_cost: float
     tax: float
     total: float
     created_at: datetime
     updated_at: datetime
+    class Config:
+        from_attributes = True
+
+
+
+# --- Guest checkout schemas ---
+
+class GuestAddressInput(BaseModel):
+    label: Optional[str] = None
+    line_1: str
+    line_2: Optional[str] = None
+    city: str
+    postal_code: str
+    country: str = "Iran"
+
+
+class GuestOrderItemInput(BaseModel):
+    product_id: int
+    variant_id: Optional[int] = None
+    quantity: int = Field(..., ge=1)
+
+
+class GuestOrderCreate(BaseModel):
+    guest_email: EmailStr
+    guest_name: str
+    address: GuestAddressInput
+    items: List[GuestOrderItemInput] = Field(..., min_length=1)
+    promo_code: Optional[str] = None
+    
+# --- Admin schemas ---
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class OrderStatusUpdate(BaseModel):
+    status: OrderStatus
+
+
+class AdminUserUpdate(BaseModel):
+    is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
+
+
+class PaginatedOrders(BaseModel):
+    total: int
+    items: List[OrderResponse]
+
+
+class ProductStockResponse(BaseModel):
+    id: int
+    name: str
+    slug: str
+    stock_quantity: int
 
     class Config:
         from_attributes = True
 
+
+class AdminAnalytics(BaseModel):
+    revenue_today: float
+    revenue_week: float
+    revenue_month: float
+    pending_orders: int
+    total_customers: int
+    low_stock_products: List[ProductStockResponse]
+    low_stock_threshold: int
+
+
+class ShippingRateCreate(BaseModel):
+    city: str
+    cost: float = Field(..., ge=0)
+
+class ShippingRateResponse(BaseModel):
+    id: int
+    city: str
+    cost: float
+    class Config:
+        from_attributes = True
 
 # --- Auth schemas ---
 
@@ -277,3 +367,86 @@ class RefreshRequest(BaseModel):
 
 class LogoutRequest(BaseModel):
     refresh_token: str
+
+
+# --- Payment schemas ---
+
+class PaymentCreateRequest(BaseModel):
+    order_id: int
+
+
+class PaymentCreateResponse(BaseModel):
+    payment_url: str
+    authority: str
+
+
+class PaymentVerifyRequest(BaseModel):
+    order_id: int
+    authority: str
+
+
+class PaymentVerifyResponse(BaseModel):
+    status: str  # "success" | "failed"
+    ref_id: Optional[str] = None
+    order_status: OrderStatus
+    message: Optional[str] = None
+
+
+# --- Promo schemas ---
+
+class PromoCodeCreate(BaseModel):
+    code: str
+    type: PromoType
+    amount: float = Field(..., gt=0)
+    expires_at: Optional[datetime] = None
+    usage_limit: Optional[int] = Field(None, gt=0)
+
+
+class PromoCodeResponse(BaseModel):
+    id: int
+    code: str
+    type: PromoType
+    amount: float
+    expires_at: Optional[datetime] = None
+    usage_limit: Optional[int] = None
+    used_count: int
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PromoValidateRequest(BaseModel):
+    code: str
+    subtotal: float = Field(..., ge=0)
+
+
+class PromoValidateResponse(BaseModel):
+    valid: bool
+    discount_amount: float = 0.0
+    message: Optional[str] = None
+
+class VariantCreate(BaseModel):
+    variant_name: str
+    sku: Optional[str] = None
+    price_adjustment: float = 0.0
+    stock_quantity: int = Field(default=0, ge=0)
+    is_active: bool = True
+
+class VariantUpdate(BaseModel):
+    variant_name: Optional[str] = None
+    sku: Optional[str] = None
+    price_adjustment: Optional[float] = None
+    stock_quantity: Optional[int] = None
+    is_active: Optional[bool] = None
+
+class VariantResponse(BaseModel):
+    id: int
+    variant_name: str
+    sku: Optional[str] = None
+    price_adjustment: float
+    stock_quantity: int
+    is_active: bool
+    class Config:
+        from_attributes = True

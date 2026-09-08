@@ -58,6 +58,8 @@ class Product(Base):
     stock_quantity: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+    variants: Mapped[list["Variant"]] = relationship(back_populates="product", cascade="all, delete-orphan")
     
     materials: Mapped[list["ProductMaterial"]] = relationship(back_populates="product", cascade="all, delete-orphan")
     images: Mapped[list["ProductImage"]] = relationship(back_populates="product", cascade="all, delete-orphan")
@@ -131,7 +133,7 @@ class Address(Base):
     __tablename__ = "addresses"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     user: Mapped["User"] = relationship(back_populates="addresses")
     
     label: Mapped[str | None] = mapped_column(String(50))
@@ -157,7 +159,23 @@ class CartItem(Base):
     quantity: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    
+    variant_id: Mapped[int | None] = mapped_column(ForeignKey("variants.id"), nullable=True)
+    variant: Mapped["Variant"] = relationship()
 
+class Variant(Base):
+    __tablename__ = "variants"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    product: Mapped["Product"] = relationship(back_populates="variants")
+
+    variant_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    sku: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    price_adjustment: Mapped[float] = mapped_column(Float, default=0.0)
+    stock_quantity: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
 
 class Order(Base):
     __tablename__ = "orders"
@@ -165,6 +183,9 @@ class Order(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     user: Mapped["User"] = relationship(back_populates="orders")
+
+    guest_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    guest_name: Mapped[str | None] = mapped_column(String(100), nullable=True) 
     
     address_id: Mapped[int] = mapped_column(ForeignKey("addresses.id"))
     address: Mapped["Address"] = relationship()
@@ -179,6 +200,14 @@ class Order(Base):
 
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
     invoice: Mapped["Invoice"] = relationship(back_populates="order", uselist=False, cascade="all, delete-orphan")
+
+    promo_code_id: Mapped[int | None] = mapped_column(ForeignKey("promo_codes.id"), nullable=True)
+    promo_code: Mapped["PromoCode"] = relationship()
+    discount_amount: Mapped[float] = mapped_column(Float, default=0.0)
+
+    payment: Mapped["Payment"] = relationship(back_populates="order", uselist=False, cascade="all, delete-orphan")
+
+    reserved_until: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class OrderItem(Base):
@@ -195,6 +224,8 @@ class OrderItem(Base):
     materials_snapshot: Mapped[dict | None] = mapped_column(JSON)
     image_url: Mapped[str | None] = mapped_column(String(500))
 
+    variant_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
 
 class Invoice(Base):
     __tablename__ = "invoices"
@@ -208,3 +239,51 @@ class Invoice(Base):
     status: Mapped[InvoiceStatus] = mapped_column(Enum(InvoiceStatus), default=InvoiceStatus.PENDING)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
 
+
+class PaymentStatus(str, enum.Enum):
+    PENDING = "pending"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
+class PromoType(str, enum.Enum):
+    PERCENT = "percent"
+    FIXED = "fixed"
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
+    order: Mapped["Order"] = relationship(back_populates="payment")
+
+    gateway: Mapped[str] = mapped_column(String(50), default="zarinpal")
+    authority: Mapped[str | None] = mapped_column(String(100), unique=True, index=True, nullable=True)
+    ref_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    amount: Mapped[float] = mapped_column(Float, nullable=False)  # Toman, matches Order.total
+    status: Mapped[PaymentStatus] = mapped_column(Enum(PaymentStatus), default=PaymentStatus.PENDING)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    verified_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class PromoCode(Base):
+    __tablename__ = "promo_codes"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    type: Mapped[PromoType] = mapped_column(Enum(PromoType), nullable=False)
+    amount: Mapped[float] = mapped_column(Float, nullable=False)  # percent (0-100) or fixed Toman amount
+    expires_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    usage_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    used_count: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+class ShippingRate(Base):
+    __tablename__ = "shipping_rates"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    city: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    cost: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)

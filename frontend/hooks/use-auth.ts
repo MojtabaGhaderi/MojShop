@@ -67,6 +67,8 @@ export function useAuth() {
     user: userQuery.data ?? null,
     isAuthenticated: !!userQuery.data,
     isLoading: userQuery.isLoading,
+    isLoginPending: loginMutation.isPending,
+    isRegisterPending: registerMutation.isPending,
     login: loginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
     logout,

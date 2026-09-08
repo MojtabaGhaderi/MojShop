@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 
 export default function LoginPage() {
-    const { login, loginError, isLoading } = useAuth();
+    const { login, loginError, isLoginPending } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -50,10 +50,10 @@ export default function LoginPage() {
                 )}
                 <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoginPending}
                     className="w-full rounded bg-accent py-2 font-medium text-white disabled:opacity-50"
                 >
-                    {isLoading ? 'در حال ورود...' : 'ورود'}
+                    {isLoginPending ? 'در حال ورود...' : 'ورود'}
                 </button>
             </form>
             <p className="mt-4 text-center text-sm text-primary-subtle">

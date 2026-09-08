@@ -157,13 +157,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
           <div className="border-t border-border-default pt-4">
             <AddToCartClient
               productId={product.id}
+              productSlug={product.slug}
               productName={product.name}
               basePrice={product.base_price}
               calculatedPrice={product.current_price}
-              materialWeights={product.materials.map((m) => ({
-                metal_type: m.metal_type,
-                weight_grams: m.weight_grams,
-              }))}
+              materialWeights={product.materials.map((m) => ({ metal_type: m.metal_type, weight_grams: m.weight_grams }))}
+              images={product.images}
               stockQuantity={product.stock_quantity}
             />
           </div>

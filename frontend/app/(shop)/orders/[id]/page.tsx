@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { useOrder } from '@/hooks/use-orders';
+import { useOrder, useGuestOrder } from '@/hooks/use-orders';
 import { formatPriceWithCurrency } from '@/lib/utils';
 import type { OrderStatus } from '@/types';
 
@@ -28,22 +28,30 @@ function formatDate(iso: string) {
     }
 }
 
-export default function OrderDetailPage() {
+function OrderDetailContent() {
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
     const orderId = Number(params.id);
+    const guestEmail = searchParams.get('guest_email');
+
     const { isAuthenticated, isLoading: authLoading } = useAuth();
-    const { data: order, isLoading, error } = useOrder(
-        Number.isFinite(orderId) ? orderId : null
-    );
+
+    const authOrder = useOrder(!guestEmail && Number.isFinite(orderId) ? orderId : null);
+    const guestOrder = useGuestOrder(guestEmail && Number.isFinite(orderId) ? orderId : null, guestEmail);
+
+    const { data: order, isLoading, error } = guestEmail ? guestOrder : authOrder;
 
     useEffect(() => {
+        // A guest with a valid ?guest_email= link never needs to be logged in —
+        // only redirect when there's no guest_email AND no session.
+        if (guestEmail) return;
         if (!authLoading && !isAuthenticated) {
             router.replace('/login');
         }
-    }, [authLoading, isAuthenticated, router]);
+    }, [authLoading, isAuthenticated, guestEmail, router]);
 
-    if (authLoading || isLoading) {
+    if ((!guestEmail && authLoading) || isLoading) {
         return (
             <div className="mx-auto max-w-2xl px-4 py-12">
                 <div className="h-8 w-48 animate-pulse rounded bg-surface-elevated" />
@@ -56,18 +64,22 @@ export default function OrderDetailPage() {
         return (
             <div className="mx-auto max-w-2xl px-4 py-16 text-center">
                 <p className="text-primary-muted">سفارش یافت نشد.</p>
-                <Link href="/orders" className="mt-4 inline-block text-accent hover:underline">
-                    بازگشت به لیست سفارش‌ها
-                </Link>
+                {!guestEmail && (
+                    <Link href="/orders" className="mt-4 inline-block text-accent hover:underline">
+                        بازگشت به لیست سفارش‌ها
+                    </Link>
+                )}
             </div>
         );
     }
 
     return (
         <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
-            <Link href="/orders" className="text-sm text-accent hover:underline">
-                ← سفارش‌ها
-            </Link>
+            {!guestEmail && (
+                <Link href="/orders" className="text-sm text-accent hover:underline">
+                    ← سفارش‌ها
+                </Link>
+            )}
 
             <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -148,6 +160,12 @@ export default function OrderDetailPage() {
                     <span>جمع اقلام</span>
                     <span>{formatPriceWithCurrency(order.subtotal)}</span>
                 </div>
+                {order.discount_amount > 0 && (
+                    <div className="mt-1 flex justify-between text-sm text-green-600">
+                        <span>تخفیف</span>
+                        <span>−{formatPriceWithCurrency(order.discount_amount)}</span>
+                    </div>
+                )}
                 <div className="mt-1 flex justify-between text-sm text-primary-muted">
                     <span>ارسال</span>
                     <span>{formatPriceWithCurrency(order.shipping_cost)}</span>
@@ -164,5 +182,18 @@ export default function OrderDetailPage() {
                 </div>
             </section>
         </div>
+    );
+}
+
+export default function OrderDetailPage() {
+    return (
+        <Suspense fallback={
+            <div className="mx-auto max-w-2xl px-4 py-12">
+                <div className="h-8 w-48 animate-pulse rounded bg-surface-elevated" />
+                <div className="mt-6 h-64 animate-pulse rounded-xl bg-surface-elevated" />
+            </div>
+        }>
+            <OrderDetailContent />
+        </Suspense>
     );
 }

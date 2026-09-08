@@ -43,3 +43,17 @@ def get_current_admin(user: User = Depends(get_current_user)) -> User:
             detail="Admin access required",
         )
     return user
+
+def get_current_user_optional(
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Like get_current_user, but returns None instead of raising 401 when there's
+    no token — needed for endpoints usable by both logged-in and guest checkout."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    token = authorization[7:].strip()
+    user_id = decode_access_token(token)
+    if user_id is None:
+        return None
+    return db.query(User).filter(User.id == user_id, User.is_active == True).first()

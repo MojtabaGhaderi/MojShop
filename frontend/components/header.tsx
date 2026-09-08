@@ -3,14 +3,16 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { NAV_LINKS, SITE_NAME } from '@/lib/constants';
-import { useCart } from '@/hooks/use-cart';
+import { useShopCart } from '@/hooks/use-shop-cart';
+import { useCartDrawer } from '@/context/cart-drawer-context';
 import { useAuth } from '@/hooks/use-auth';
 import MobileNav from './mobile-nav';
 
 export default function Header() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { itemCount } = useCart();
+  const { itemCount } = useShopCart();
+  const { open: openCart } = useCartDrawer();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
 
   return (
@@ -81,9 +83,10 @@ export default function Header() {
               </svg>
             </Link>
 
-            {/* Cart icon */}
-            <Link
-              href="/cart"
+            {/* Cart icon — opens the drawer instead of navigating */}
+            <button
+              type="button"
+              onClick={openCart}
               className="relative flex h-10 w-10 items-center justify-center rounded-lg text-primary transition-colors hover:bg-surface-sunken"
               aria-label={`سبد خرید (${itemCount} کالا)`}
             >
@@ -106,7 +109,7 @@ export default function Header() {
                   {itemCount > 99 ? '99+' : itemCount}
                 </span>
               )}
-            </Link>
+            </button>
 
             {/* Auth section */}
             {isLoading ? (

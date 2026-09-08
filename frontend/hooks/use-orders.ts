@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import type { Order, OrderCreate } from '@/types';
+import type { Order, OrderCreate, GuestOrderCreate } from '@/types';
+
 
 const ORDERS_KEY = 'orders';
 
@@ -44,5 +45,25 @@ export function useCreateOrder() {
             queryClient.invalidateQueries({ queryKey: [ORDERS_KEY] });
             queryClient.invalidateQueries({ queryKey: ['cart'] });
         },
+    });
+}
+
+export function useCreateGuestOrder() {
+    return useMutation({
+        mutationFn: async (payload: GuestOrderCreate) => {
+            const { data } = await api.post<Order>('/orders/guest', payload);
+            return data;
+        },
+    });
+}
+
+export function useGuestOrder(orderId: number | null, guestEmail: string | null) {
+    return useQuery<Order>({
+        queryKey: ['orders', 'guest', orderId, guestEmail],
+        queryFn: async () => {
+            const { data } = await api.get<Order>(`/orders/guest/${orderId}`, { params: { email: guestEmail } });
+            return data;
+        },
+        enabled: orderId !== null && !!guestEmail,
     });
 }

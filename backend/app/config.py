@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    ZARINPAL_MERCHANT_ID: "00000000-0000-0000-0000-000000000000"
+    ZARINPAL_SANDBOX: bool = True
+    FRONTEND_URL: str = "http://192.168.1.144:8000"  # used to build the ZarinPal callback_url
+    # FRONTEND_URL: str = "http://10.209.61.91:3000"  # used to build the ZarinPal callback_url
+
+
     class Config:
         env_file = ".env"
 

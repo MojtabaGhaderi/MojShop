@@ -121,7 +121,7 @@ export interface UserUpdate {
 
 export interface Address {
   id: number;
-  user_id: number;
+  user_id: number | null;
   label: string | null;
   line_1: string;
   line_2: string | null;
@@ -182,12 +182,15 @@ export interface Invoice {
 
 export interface Order {
   id: number;
-  user_id: number;
+  user_id: number | null;
+  guest_email: string | null;
+  guest_name: string | null;
   address: Address;
   status: OrderStatus;
   items: OrderItem[];
   invoice: Invoice | null;
   subtotal: number;
+  discount_amount: number;
   shipping_cost: number;
   tax: number;
   total: number;
@@ -197,8 +200,14 @@ export interface Order {
 
 export interface OrderCreate {
   address_id: number;
+  promo_code?: string;
 }
 
+
+export interface PaginatedOrders {
+  total: number;
+  items: Order[];
+}
 // --- Prices / filters ---
 
 export interface MetalRate {
@@ -227,3 +236,116 @@ export const IMAGE_DIMENSIONS: Record<ImageSize, { width: number; height: number
   medium: { width: 800, height: 800 },
   large: { width: 1600, height: 1600 },
 };
+
+// --- Admin ---
+
+export interface AdminAnalytics {
+  revenue_today: number;
+  revenue_week: number;
+  revenue_month: number;
+  pending_orders: number;
+  total_customers: number;
+  low_stock_products: { id: number; name: string; slug: string; stock_quantity: number }[];
+  low_stock_threshold: number;
+}
+
+export interface ProductMaterialInput {
+  metal_type: MetalType;
+  weight_grams: number;
+  display_name?: string;
+}
+
+export interface ProductImageInput {
+  url: string;
+  alt_text?: string;
+  is_primary?: boolean;
+  sort_order?: number;
+}
+
+export interface ProductCreateInput {
+  name: string;
+  slug: string;
+  description?: string;
+  category_id?: number;
+  base_price: number;
+  total_weight_grams?: number;
+  stock_quantity?: number;
+  is_active?: boolean;
+  materials?: ProductMaterialInput[];
+  images?: ProductImageInput[];
+}
+
+// --- Guest checkout ---
+
+export interface GuestAddressInput {
+  label?: string;
+  line_1: string;
+  line_2?: string;
+  city: string;
+  postal_code: string;
+  country?: string;
+}
+
+export interface GuestOrderCreate {
+  guest_name: string;
+  guest_email: string;
+  address: GuestAddressInput;
+  items: { product_id: number; quantity: number }[];
+  promo_code?: string;
+}
+
+// --- Payments ---
+
+export interface PaymentCreateResponse {
+  payment_url: string;
+  authority: string;
+}
+
+export interface PaymentVerifyResponse {
+  status: 'success' | 'failed';
+  ref_id: string | null;
+  order_status: OrderStatus;
+  message?: string;
+}
+
+// --- Promo codes ---
+
+export interface PromoValidateResponse {
+  valid: boolean;
+  discount_amount: number;
+  message?: string;
+}
+
+export type PromoType = 'percent' | 'fixed';
+
+export interface PromoCode {
+  id: number;
+  code: string;
+  type: PromoType;
+  amount: number;
+  expires_at: string | null;
+  usage_limit: number | null;
+  used_count: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+// --- Shipping ---
+
+export interface ShippingRate {
+  id: number;
+  city: string;
+  cost: number;
+}
+
+export type ProductUpdateInput = Partial<ProductCreateInput>;
+
+
+export interface ShopCartItem {
+  id: number | string;   // number for authenticated (real DB id), string (uuid) for guest
+  product_id: number;
+  variant_id: number | null;
+  quantity: number;
+  product: Pick<Product, 'id' | 'name' | 'slug' | 'current_price' | 'images'>;
+  unitPrice: number;      // resolved price including any variant adjustment
+}

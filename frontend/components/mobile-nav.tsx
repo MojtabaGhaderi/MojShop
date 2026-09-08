@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useCallback } from 'react';
 import { NAV_LINKS, SITE_NAME } from '@/lib/constants';
+import { useCartDrawer } from '@/context/cart-drawer-context';
 import type { AuthUser } from '@/types';
 
 interface MobileNavProps {
@@ -20,6 +21,8 @@ export default function MobileNav({
   isAuthenticated,
   logout,
 }: MobileNavProps) {
+  const { open: openCart } = useCartDrawer();
+
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -136,13 +139,13 @@ export default function MobileNav({
             </li>
           ))}
           <li>
-            <Link
-              href="/cart"
-              onClick={onClose}
-              className="block px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-surface-sunken hover:text-accent"
+            <button
+              type="button"
+              onClick={() => { onClose(); openCart(); }}
+              className="block w-full px-4 py-3 text-start text-sm font-medium text-primary transition-colors hover:bg-surface-sunken hover:text-accent"
             >
               سبد خرید
-            </Link>
+            </button>
           </li>
         </ul>
       </nav>

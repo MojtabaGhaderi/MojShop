@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 
 export default function RegisterPage() {
-    const { register, registerError, isLoading } = useAuth();
+    const { register, registerError, isRegisterPending } = useAuth();
     const [form, setForm] = useState({
         email: '',
         password: '',
@@ -76,10 +76,10 @@ export default function RegisterPage() {
                 )}
                 <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isRegisterPending}
                     className="w-full rounded bg-accent py-2 font-medium text-white disabled:opacity-50"
                 >
-                    {isLoading ? 'در حال ثبت‌نام...' : 'ثبت‌نام'}
+                    {isRegisterPending ? 'در حال ثبت‌نام...' : 'ثبت‌نام'}
                 </button>
             </form>
             <p className="mt-4 text-center text-sm text-primary-subtle">
