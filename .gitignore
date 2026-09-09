@@ -23,6 +23,7 @@ node_modules/
 out/
 *.log
 npm-debug.log*
+*.tsbuildinfo
 
 # IDE
 .idea/

@@ -23,6 +23,7 @@ def _cart_item_to_response(cart_item: models.CartItem, prices: dict) -> dict:
     variant = cart_item.variant
     base_price = _compute_current_price(product, prices)
     unit_price = round(base_price + (variant.price_adjustment if variant else 0.0), 2)
+
     return {
         "id": cart_item.id,
         "user_id": cart_item.user_id,
@@ -32,8 +33,19 @@ def _cart_item_to_response(cart_item: models.CartItem, prices: dict) -> dict:
         "created_at": cart_item.created_at,
         "updated_at": cart_item.updated_at,
         "product": {
-            # ...unchanged existing fields...
+            "id": product.id,
+            "name": product.name,
+            "slug": product.slug,
+            "description": product.description,
+            "base_price": product.base_price,
+            "total_weight_grams": product.total_weight_grams,
+            "stock_quantity": product.stock_quantity,
+            "is_active": product.is_active,
             "current_price": base_price,
+            "created_at": product.created_at,
+            "category": product.category,
+            "materials": product.materials,
+            "images": product.images,
         }
     }
 

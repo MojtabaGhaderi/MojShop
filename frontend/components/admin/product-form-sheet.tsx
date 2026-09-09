@@ -13,6 +13,7 @@ import { Trash2, Plus } from 'lucide-react';
 import { useCreateProduct, useUpdateProduct } from '@/hooks/use-admin-products';
 import { ProductImageUploader } from '@/components/admin/product-image-uploader';
 import type { Category, MetalType, Product, ProductMaterialInput } from '@/types';
+import { VariantManager } from '@/components/admin/variant-manager';
 
 const METAL_TYPES: { value: MetalType; label: string }[] = [
     { value: 'gold', label: 'طلا' },
@@ -199,6 +200,13 @@ export function ProductFormSheet({ open, onOpenChange, product, categories }: Pr
                         <div className="space-y-2 border-t pt-4">
                             <Label>تصاویر محصول</Label>
                             <ProductImageUploader productId={targetProductId} />
+                        </div>
+
+                    )}
+                    {targetProductId && (
+                        <div className="space-y-2 border-t pt-4">
+                            <Label>گزینه‌ها (مثلاً سایز)</Label>
+                            <VariantManager productId={targetProductId} variants={product?.variants ?? []} />
                         </div>
                     )}
 

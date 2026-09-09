@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
 from app import crud, schemas, models
@@ -33,6 +33,28 @@ async def list_products(
         "skip": skip,
         "limit": limit,
     }
+@router.get("/{slug}/related", response_model=List[schemas.ProductResponse])
+async def get_related_products(slug: str, db: Session = Depends(get_db)):
+    product = crud.get_product_by_slug(db, slug)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    base_query = db.query(models.Product).options(
+        joinedload(models.Product.category), joinedload(models.Product.materials),
+        joinedload(models.Product.images), joinedload(models.Product.variants),
+    ).filter(models.Product.is_active == True, models.Product.id != product.id)
+
+    related = []
+    if product.category_id:
+        related = base_query.filter(models.Product.category_id == product.category_id).limit(4).all()
+
+    if not related:
+        # No category match (or product has no category at all) — fall back to newest active products
+        # rather than returning an empty section. A sparse catalog shouldn't mean a broken-looking page.
+        related = base_query.order_by(models.Product.created_at.desc()).limit(4).all()
+
+    prices = await fetch_live_prices()
+    return [serialize_product(p, prices) for p in related]
 
 @router.get("/{slug}", response_model=schemas.ProductResponse)
 async def get_product(slug: str, db: Session = Depends(get_db)):
@@ -100,3 +122,4 @@ async def delete_product(
 
     crud.delete_product(db, db_product)
     return None
+

@@ -45,9 +45,16 @@ export function useCart() {
           ...old,
           {
             id: Date.now(),
-            product_id: item.product_id,
             quantity: item.quantity,
-            product: { id: item.product_id, name: '', slug: '', current_price: 0, images: [] },
+            unit_price: 0,
+            variant: null,
+            product: {
+              id: item.product_id,
+              name: '',
+              slug: '',
+              current_price: 0,
+              images: [],
+            },
           },
         ];
       });

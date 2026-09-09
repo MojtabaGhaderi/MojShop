@@ -10,7 +10,7 @@ from app.services.pricing import serialize_product
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Category, Order, OrderStatus, Product, ProductImage, ProductMaterial, User
+from app.models import Category, Order, OrderStatus, Product, ProductImage, ProductMaterial, User, Variant, CartItem
 from app.schemas import (
     AdminAnalytics,
     AdminUserUpdate,
@@ -27,6 +27,9 @@ from app.schemas import (
     UserResponse,
     ShippingRateResponse,
     ShippingRateCreate,
+    VariantCreate,
+    VariantUpdate,
+    VariantResponse,
 )
 
 router = APIRouter(
@@ -49,14 +52,19 @@ ORDER_TRANSITIONS: dict[OrderStatus, set[OrderStatus]] = {
 
 
 @router.get("/products", response_model=List[ProductResponse])
-async def list_products(  # now async
+async def list_products(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
     products = (
         db.query(Product)
-        .options(joinedload(Product.category), joinedload(Product.materials), joinedload(Product.images))
+        .options(
+            joinedload(Product.category),
+            joinedload(Product.materials),
+            joinedload(Product.images),
+            joinedload(Product.variants),   # NEW
+        )
         .order_by(Product.id.desc())
         .offset(skip)
         .limit(limit)
@@ -326,3 +334,42 @@ def get_analytics(db: Session = Depends(get_db)):
         "low_stock_products": low_stock_products,
         "low_stock_threshold": low_stock_threshold,
     }
+
+@router.post("/products/{product_id}/variants", response_model=VariantResponse, status_code=status.HTTP_201_CREATED)
+def create_variant(product_id: int, payload: VariantCreate, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    variant = Variant(product_id=product_id, **payload.model_dump())
+    db.add(variant)
+    db.commit()
+    db.refresh(variant)
+    return variant
+
+
+@router.put("/variants/{variant_id}", response_model=VariantResponse)
+def update_variant(variant_id: int, payload: VariantUpdate, db: Session = Depends(get_db)):
+    variant = db.query(Variant).filter(Variant.id == variant_id).first()
+    if not variant:
+        raise HTTPException(status_code=404, detail="Variant not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(variant, field, value)
+    db.commit()
+    db.refresh(variant)
+    return variant
+
+
+@router.delete("/variants/{variant_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_variant(variant_id: int, db: Session = Depends(get_db)):
+    variant = db.query(Variant).filter(Variant.id == variant_id).first()
+    if not variant:
+        raise HTTPException(status_code=404, detail="Variant not found")
+
+    # Cart lines referencing this variant would otherwise violate the FK constraint,
+    # or (if we nulled variant_id instead) silently mis-price the item back to base.
+    # Removing the stale cart line is the least-wrong option of the three.
+    db.query(CartItem).filter(CartItem.variant_id == variant_id).delete()
+
+    db.delete(variant)
+    db.commit()
+    return None

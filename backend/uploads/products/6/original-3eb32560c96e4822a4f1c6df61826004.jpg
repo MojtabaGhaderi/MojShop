@@ -1,0 +1,39 @@
+<svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+<rect width="100%" height="100%" fill="#f9fafb"/>
+
+  <g data-room-id="1" aria-label="Men Dorm">
+    <rect x="308.0" y="308.0" width="100.0" height="300.0" fill="#000" opacity="0.15" rx="30"/>
+    <rect x="300.0" y="300.0" width="100.0" height="300.0" fill="#f97316" rx="30"/>
+  </g>
+
+
+  <g data-room-id="2" aria-label="Private Green">
+    <rect x="8.0" y="8.0" width="100.0" height="300.0" fill="#000" opacity="0.15" rx="30"/>
+    <rect x="0.0" y="0.0" width="100.0" height="300.0" fill="#22c55e" rx="30"/>
+  </g>
+
+
+  <g data-room-id="3" aria-label="Private Red">
+    <rect x="108.0" y="8.0" width="100.0" height="300.0" fill="#000" opacity="0.15" rx="30"/>
+    <rect x="100.0" y="0.0" width="100.0" height="300.0" fill="#ef4444" rx="30"/>
+  </g>
+
+
+  <g data-room-id="4" aria-label="Private Yellow">
+    <rect x="408.0" y="8.0" width="100.0" height="300.0" fill="#000" opacity="0.15" rx="30"/>
+    <rect x="400.0" y="0.0" width="100.0" height="300.0" fill="#eab308" rx="30"/>
+  </g>
+
+
+  <g data-room-id="5" aria-label="Private Purple">
+    <rect x="508.0" y="8.0" width="100.0" height="300.0" fill="#000" opacity="0.15" rx="30"/>
+    <rect x="500.0" y="0.0" width="100.0" height="300.0" fill="#a855f7" rx="30"/>
+  </g>
+
+
+  <g data-room-id="6" aria-label="Women Dorm">
+    <rect x="608.0" y="8.0" width="100.0" height="300.0" fill="#000" opacity="0.15" rx="30"/>
+    <rect x="600.0" y="0.0" width="100.0" height="300.0" fill="#3b82f6" rx="30"/>
+  </g>
+
+</svg>

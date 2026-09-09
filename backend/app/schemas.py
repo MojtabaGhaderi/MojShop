@@ -76,7 +76,30 @@ class ProductBase(BaseModel):
     stock_quantity: int = Field(default=0, ge=0)
     is_active: bool = True
 
+class VariantCreate(BaseModel):
+    variant_name: str
+    sku: Optional[str] = None
+    price_adjustment: float = 0.0
+    stock_quantity: int = Field(default=0, ge=0)
+    is_active: bool = True
 
+class VariantUpdate(BaseModel):
+    variant_name: Optional[str] = None
+    sku: Optional[str] = None
+    price_adjustment: Optional[float] = None
+    stock_quantity: Optional[int] = None
+    is_active: Optional[bool] = None
+
+class VariantResponse(BaseModel):
+    id: int
+    variant_name: str
+    sku: Optional[str] = None
+    price_adjustment: float
+    stock_quantity: int
+    is_active: bool
+    class Config:
+        from_attributes = True
+        
 class ProductCreate(ProductBase):
     materials: List[ProductMaterialCreate] = []
     images: List[ProductImageCreate] = []
@@ -427,26 +450,3 @@ class PromoValidateResponse(BaseModel):
     discount_amount: float = 0.0
     message: Optional[str] = None
 
-class VariantCreate(BaseModel):
-    variant_name: str
-    sku: Optional[str] = None
-    price_adjustment: float = 0.0
-    stock_quantity: int = Field(default=0, ge=0)
-    is_active: bool = True
-
-class VariantUpdate(BaseModel):
-    variant_name: Optional[str] = None
-    sku: Optional[str] = None
-    price_adjustment: Optional[float] = None
-    stock_quantity: Optional[int] = None
-    is_active: Optional[bool] = None
-
-class VariantResponse(BaseModel):
-    id: int
-    variant_name: str
-    sku: Optional[str] = None
-    price_adjustment: float
-    stock_quantity: int
-    is_active: bool
-    class Config:
-        from_attributes = True

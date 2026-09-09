@@ -35,6 +35,7 @@ export interface Product {
   category: Pick<Category, 'id' | 'name' | 'slug'>;
   materials: Material[];
   images: ProductImage[];
+  variants: Variant[];
   current_price: number;
 }
 
@@ -48,6 +49,7 @@ export interface ProductListItem {
   category: Pick<Category, 'id' | 'name' | 'slug'>;
   materials: Material[];
   images: ProductImage[];
+  variants: Variant[];
   current_price: number;
 }
 
@@ -62,7 +64,7 @@ export interface CartItem {
   id: number;
   quantity: number;
   unit_price: number;        // NEW
-  variant: CartVariant | null;  // NEW
+  variant: Variant | null;
   product: {
     id: number;
     name: string;
@@ -355,7 +357,8 @@ export interface ShopCartItem {
 }
 
 
-export interface CartVariant {
+
+export interface Variant {
   id: number;
   variant_name: string;
   sku: string | null;
