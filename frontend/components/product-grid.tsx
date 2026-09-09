@@ -1,3 +1,4 @@
+//components/product-grid.tsx
 import ProductCard from './product-card';
 import ProductCardSkeleton from './skeletons/product-card-skeleton';
 import type { ProductListItem } from '@/types';
@@ -28,8 +29,8 @@ export default function ProductGrid({
       {isLoading
         ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
         : products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+          <ProductCard key={product.id} product={product} />
+        ))}
     </div>
   );
 }

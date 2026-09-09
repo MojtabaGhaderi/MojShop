@@ -1,7 +1,8 @@
+#app/models.py
 import datetime
 import enum
 
-from sqlalchemy import ForeignKey, String, Text, Float, Integer, Boolean, DateTime, Enum, JSON
+from sqlalchemy import ForeignKey, String, Text, Float, Integer, Boolean, DateTime, Enum, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -63,6 +64,8 @@ class Product(Base):
     
     materials: Mapped[list["ProductMaterial"]] = relationship(back_populates="product", cascade="all, delete-orphan")
     images: Mapped[list["ProductImage"]] = relationship(back_populates="product", cascade="all, delete-orphan")
+
+    reviews: Mapped[list["Review"]] = relationship(back_populates="product", cascade="all, delete-orphan")
 
 
 class ProductMaterial(Base):
@@ -286,4 +289,32 @@ class ShippingRate(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     city: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     cost: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+    __table_args__ = (UniqueConstraint("product_id", "user_id", name="uq_reviews_product_user"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    product: Mapped["Product"] = relationship(back_populates="reviews")
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user: Mapped["User"] = relationship()
+
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+
+class WishlistItem(Base):
+    __tablename__ = "wishlist_items"
+    __table_args__ = (UniqueConstraint("user_id", "product_id", name="uq_wishlist_user_product"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user: Mapped["User"] = relationship()
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    product: Mapped["Product"] = relationship()
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)

@@ -1,3 +1,5 @@
+//components/product-filters.tsx
+
 'use client';
 
 import { useState } from 'react';
@@ -86,11 +88,10 @@ export default function ProductFilters({
             <button
               type="button"
               onClick={() => onCategoryChange('')}
-              className={`w-full rounded-lg px-3 py-2 text-start text-sm transition-colors ${
-                selectedCategory === ''
+              className={`w-full rounded-lg px-3 py-2 text-start text-sm transition-colors ${selectedCategory === ''
                   ? 'bg-accent-subtle font-medium text-accent'
                   : 'text-primary-muted hover:bg-surface-sunken hover:text-primary'
-              }`}
+                }`}
             >
               همه دسته‌ها
             </button>
@@ -100,11 +101,10 @@ export default function ProductFilters({
               <button
                 type="button"
                 onClick={() => onCategoryChange(cat.slug)}
-                className={`w-full rounded-lg px-3 py-2 text-start text-sm transition-colors ${
-                  selectedCategory === cat.slug
+                className={`w-full rounded-lg px-3 py-2 text-start text-sm transition-colors ${selectedCategory === cat.slug
                     ? 'bg-accent-subtle font-medium text-accent'
                     : 'text-primary-muted hover:bg-surface-sunken hover:text-primary'
-                }`}
+                  }`}
               >
                 {cat.name}
               </button>
@@ -122,11 +122,10 @@ export default function ProductFilters({
               <button
                 type="button"
                 onClick={() => onMetalChange(opt.value)}
-                className={`w-full rounded-lg px-3 py-2 text-start text-sm transition-colors ${
-                  selectedMetal === opt.value
+                className={`w-full rounded-lg px-3 py-2 text-start text-sm transition-colors ${selectedMetal === opt.value
                     ? 'bg-accent-subtle font-medium text-accent'
                     : 'text-primary-muted hover:bg-surface-sunken hover:text-primary'
-                }`}
+                  }`}
               >
                 {opt.label}
               </button>

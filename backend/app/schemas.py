@@ -99,7 +99,7 @@ class VariantResponse(BaseModel):
     is_active: bool
     class Config:
         from_attributes = True
-        
+
 class ProductCreate(ProductBase):
     materials: List[ProductMaterialCreate] = []
     images: List[ProductImageCreate] = []
@@ -129,6 +129,8 @@ class ProductResponse(ProductBase):
     current_price: float = 0.0
     created_at: datetime
     variants: List[VariantResponse] = []
+    average_rating: float = 0.0
+    review_count: int = 0  
 
     class Config:
         from_attributes = True
@@ -449,4 +451,41 @@ class PromoValidateResponse(BaseModel):
     valid: bool
     discount_amount: float = 0.0
     message: Optional[str] = None
+# --- Reviews ---
+
+class ReviewCreate(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    comment: Optional[str] = None
+
+class ReviewUpdate(BaseModel):
+    rating: Optional[int] = Field(None, ge=1, le=5)
+    comment: Optional[str] = None
+
+class ReviewUserResponse(BaseModel):
+    id: int
+    full_name: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+class ReviewResponse(BaseModel):
+    id: int
+    product_id: int
+    user: ReviewUserResponse
+    rating: int
+    comment: Optional[str] = None
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+# --- Wishlist ---
+
+class WishlistAdd(BaseModel):
+    product_id: int
+
+class WishlistItemResponse(BaseModel):
+    id: int
+    product: ProductResponse
+    created_at: datetime
+    class Config:
+        from_attributes = True
 

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import products, categories, auth, profile, addresses, cart, orders, upload, admin, payments, promos
+from app.routers import products, categories, auth, profile, addresses, cart, orders, upload, admin, payments, promos, reviews, wishlist
 
 app = FastAPI(title="Accessory Shop API")
 
@@ -29,6 +29,8 @@ app.include_router(categories.router)
 app.include_router(admin.router)
 app.include_router(payments.router)
 app.include_router(promos.router)
+app.include_router(reviews.router)
+app.include_router(wishlist.router)
 
 @app.get("/health")
 def health():

@@ -1,3 +1,4 @@
+//app/(shop)/products/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
@@ -179,11 +180,10 @@ function ProductsContent() {
                       <button
                         type="button"
                         onClick={() => handlePageChange(p)}
-                        className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition-colors ${
-                          p === page
+                        className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition-colors ${p === page
                             ? 'bg-accent text-on-accent'
                             : 'text-primary hover:bg-surface-sunken'
-                        }`}
+                          }`}
                         aria-current={p === page ? 'page' : undefined}
                       >
                         {p}
@@ -210,7 +210,7 @@ function ProductsContent() {
 
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-6"><div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">{Array.from({length: 8}).map((_, i) => <div key={i} className="aspect-square animate-pulse rounded-lg bg-surface-elevated" />)}</div></div>}>
+    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-6"><div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="aspect-square animate-pulse rounded-lg bg-surface-elevated" />)}</div></div>}>
       <ProductsContent />
     </Suspense>
   );

@@ -37,6 +37,8 @@ export interface Product {
   images: ProductImage[];
   variants: Variant[];
   current_price: number;
+  average_rating: number;
+  review_count: number;
 }
 
 export interface ProductListItem {
@@ -51,6 +53,8 @@ export interface ProductListItem {
   images: ProductImage[];
   variants: Variant[];
   current_price: number;
+  average_rating: number;
+  review_count: number;
 }
 
 export interface ProductsResponse {
@@ -365,4 +369,29 @@ export interface Variant {
   price_adjustment: number;
   stock_quantity: number;
   is_active: boolean;
+}
+
+export interface ReviewUser {
+  id: number;
+  full_name: string | null;
+}
+
+export interface Review {
+  id: number;
+  product_id: number;
+  user: ReviewUser;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface ReviewCreate {
+  rating: number;
+  comment?: string;
+}
+
+export interface WishlistItem {
+  id: number;
+  product: ProductListItem;
+  created_at: string;
 }

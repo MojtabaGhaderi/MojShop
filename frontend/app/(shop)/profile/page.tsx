@@ -1,3 +1,4 @@
+//profile/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useProfile, useAddresses } from '@/hooks/use-profile';
 import type { Address, AddressCreate } from '@/types';
 import { AxiosError } from 'axios';
+import WishlistSection from '@/components/wishlist-section';
 
 function errorDetail(err: unknown): string {
     if (err instanceof AxiosError) {
@@ -235,7 +237,11 @@ export default function ProfilePage() {
                     </button>
                 </form>
             </section>
-
+            {/* Wishlist */}
+            <section className="mt-6 rounded-xl border border-border-default bg-surface p-5">
+                <h2 className="text-lg font-semibold text-primary">علاقه‌مندی‌ها</h2>
+                <WishlistSection />
+            </section>
             {/* Addresses */}
             <section className="mt-6 rounded-xl border border-border-default bg-surface p-5">
                 <div className="flex items-center justify-between">

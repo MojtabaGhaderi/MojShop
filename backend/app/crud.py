@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from app import models
 
@@ -96,12 +96,9 @@ def get_products_filtered(
             models.ProductMaterial.metal_type == metal_type
         )
     
+        query = _apply_search_filter(query, search)
     if search:
-        search_term = f"%{search}%"
-        query = query.filter(
-            models.Product.name.ilike(search_term)
-            | models.Product.description.ilike(search_term)
-        )
+        query = query.order_by(func.similarity(models.Product.name, search).desc())
     
     return query.offset(skip).limit(limit).all()
 
@@ -124,14 +121,16 @@ def get_products_count(
             models.ProductMaterial.metal_type == metal_type
         )
 
-    if search:
-        search_term = f"%{search}%"
-        query = query.filter(
-            models.Product.name.ilike(search_term)
-            | models.Product.description.ilike(search_term)
-        )
+    query = _apply_search_filter(query, search)
 
     return query.count()
+
+def get_product_review_stats(db: Session, product_id: int) -> tuple[float, int]:
+    avg, count = db.query(
+        func.coalesce(func.avg(models.Review.rating), 0.0),
+        func.count(models.Review.id),
+    ).filter(models.Review.product_id == product_id).first()
+    return (round(avg, 1) if avg else 0.0, count or 0)
 
 def get_product_by_slug(db: Session, slug: str):
     return (
@@ -551,3 +550,22 @@ def get_order_by_id(db: Session, order_id: int, user_id: int):
         .filter(models.Order.id == order_id, models.Order.user_id == user_id)
         .first()
     )
+
+def _apply_search_filter(query, search: str | None):
+    """Shared by get_products_filtered and get_products_count so they can never drift
+    out of sync with each other (the earlier admin-price-bug class of mistake)."""
+    if not search:
+        return query
+    terms = search.split()
+    conditions = []
+    for term in terms:
+        term_ilike = f"%{term}%"
+        conditions.append(
+            or_(
+                models.Product.name.ilike(term_ilike),
+                models.Product.description.ilike(term_ilike),
+                func.similarity(models.Product.name, term) > 0.9,
+                func.similarity(models.Product.description, term) > 0.9,
+            )
+        )
+    return query.filter(*conditions)  # every word must match somewhere — real multi-word search

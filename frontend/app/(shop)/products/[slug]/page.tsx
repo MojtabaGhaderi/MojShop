@@ -7,6 +7,8 @@ import ProductGallery from '@/components/product-gallery';
 import ProductCard from '@/components/product-card';
 import AddToCartClient from './add-to-cart-client';
 import { SITE_NAME } from '@/lib/constants';
+import ReviewSection from '@/components/review-section';
+
 
 export const revalidate = 0;
 interface PageProps {
@@ -123,6 +125,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
             ))}
           </div>
         </section>
+      )}
+      <ReviewSection slug={product.slug} />
+      {product.review_count > 0 && (
+        <p className="text-sm text-primary-muted">
+          ⭐ {product.average_rating.toFixed(1)} از ۵ ({product.review_count} نظر)
+        </p>
       )}
     </div>
   );

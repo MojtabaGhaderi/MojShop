@@ -1,3 +1,4 @@
+# app/routers/products.py
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
@@ -63,7 +64,9 @@ async def get_product(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
 
     prices = await fetch_live_prices()
-    return serialize_product(product, prices)
+    response = serialize_product(product, prices)
+    response.average_rating, response.review_count = crud.get_product_review_stats(db, product.id)
+    return response
 
 @router.post("/", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(
@@ -84,7 +87,7 @@ async def create_product(
     db.refresh(db_product)
 
     prices = await fetch_live_prices()
-    return _product_to_response(db_product, prices)
+    return serialize_product(db_product, prices)
 
 @router.put("/{slug}", response_model=schemas.ProductResponse)
 async def update_product(
@@ -108,7 +111,7 @@ async def update_product(
 
     updated = crud.update_product(db, db_product, update_dict)
     prices = await fetch_live_prices()
-    return _product_to_response(updated, prices)
+    return serialize_product(db_product, prices)
 
 @router.delete("/{slug}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_product(
