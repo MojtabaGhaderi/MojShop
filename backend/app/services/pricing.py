@@ -27,5 +27,6 @@ def serialize_product(product, prices: dict) -> schemas.ProductResponse:
         "images": product.images,
         "current_price": compute_current_price(product, prices),
         "variants": product.variants,
+        "tags": product.tags,
     }
     return schemas.ProductResponse.model_validate(data)

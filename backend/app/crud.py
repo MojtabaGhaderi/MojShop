@@ -73,6 +73,7 @@ def get_products_filtered(
     category_slug: str | None = None,
     metal_type: str | None = None,
     search: str | None = None,
+    tags: str | None = None,
     skip: int = 0,
     limit: int = 100,
 ):
@@ -82,6 +83,7 @@ def get_products_filtered(
             joinedload(models.Product.category),
             joinedload(models.Product.materials),
             joinedload(models.Product.images),
+            joinedload(models.Product.tags),
         )
         .filter(models.Product.is_active == True)
     )
@@ -96,7 +98,11 @@ def get_products_filtered(
             models.ProductMaterial.metal_type == metal_type
         )
     
-        query = _apply_search_filter(query, search)
+    if tags:
+        tag_slugs = [t.strip() for t in tags.split(",") if t.strip()]
+        query = query.join(models.Product.tags).filter(models.Tag.slug.in_(tag_slugs))
+
+    query = _apply_search_filter(query, search)
     if search:
         query = query.order_by(func.similarity(models.Product.name, search).desc())
     
@@ -108,6 +114,7 @@ def get_products_count(
     category_slug: str | None = None,
     metal_type: str | None = None,
     search: str | None = None,
+    tags: str | None = None,
 ) -> int:
     query = db.query(models.Product).filter(models.Product.is_active == True)
 
@@ -120,6 +127,10 @@ def get_products_count(
         query = query.join(models.ProductMaterial).filter(
             models.ProductMaterial.metal_type == metal_type
         )
+    if tags:
+        tag_slugs = [t.strip() for t in tags.split(",") if t.strip()]
+        query = query.join(models.Product.tags).filter(models.Tag.slug.in_(tag_slugs))
+
 
     query = _apply_search_filter(query, search)
 

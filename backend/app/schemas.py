@@ -104,6 +104,7 @@ class ProductCreate(ProductBase):
     materials: List[ProductMaterialCreate] = []
     images: List[ProductImageCreate] = []
     variants: List[VariantCreate] = []
+    tag_ids: List[int] = []
 
 
 
@@ -118,8 +119,19 @@ class ProductUpdate(BaseModel):
     materials: Optional[List[ProductMaterialCreate]] = None
     images: Optional[List[ProductImageCreate]] = None
     variants: Optional[List[VariantCreate]] = None
+    tag_ids: Optional[List[int]] = None
 
 
+class TagCreate(BaseModel):
+    name: str
+    slug: str
+
+class TagResponse(BaseModel):
+    id: int
+    name: str
+    slug: str
+    class Config:
+        from_attributes = True
 
 class ProductResponse(ProductBase):
     id: int
@@ -131,6 +143,7 @@ class ProductResponse(ProductBase):
     variants: List[VariantResponse] = []
     average_rating: float = 0.0
     review_count: int = 0  
+    tags: List[TagResponse] = []
 
     class Config:
         from_attributes = True
@@ -489,3 +502,6 @@ class WishlistItemResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+class StockNotifyRequest(BaseModel):
+    email: EmailStr

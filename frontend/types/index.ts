@@ -39,6 +39,7 @@ export interface Product {
   current_price: number;
   average_rating: number;
   review_count: number;
+  tags: Tag[];
 }
 
 export interface ProductListItem {
@@ -55,6 +56,8 @@ export interface ProductListItem {
   current_price: number;
   average_rating: number;
   review_count: number;
+  tags: Tag[];
+
 }
 
 export interface ProductsResponse {
@@ -237,6 +240,7 @@ export interface ProductFilters {
   search?: string;
   skip?: number;
   limit?: number;
+  tags?: string
 }
 
 export type ImageSize = 'thumb' | 'medium' | 'large';
@@ -394,4 +398,10 @@ export interface WishlistItem {
   id: number;
   product: ProductListItem;
   created_at: string;
+}
+
+export interface Tag {
+  id: number;
+  name: string;
+  slug: string;
 }

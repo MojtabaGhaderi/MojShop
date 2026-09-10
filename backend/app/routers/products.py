@@ -14,26 +14,25 @@ router = APIRouter(prefix="/products", tags=["products"])
 
 
 @router.get("/")
+# list_products — add the param and pass it through
 async def list_products(
-    category: Optional[str] = Query(None, description="Filter by category slug"),
-    metal: Optional[str] = Query(None, description="Filter by metal type"),
-    search: Optional[str] = Query(None, description="Search in name and description"),
+    category: Optional[str] = Query(None),
+    metal: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    tags: Optional[str] = Query(None, description="Comma-separated tag slugs"),   # NEW
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     prices = await fetch_live_prices()
-    products = crud.get_products_filtered(
-        db, category_slug=category, metal_type=metal, search=search, skip=skip, limit=limit
-    )
-    total = crud.get_products_count(db, category_slug=category, metal_type=metal, search=search)
-    
-    return {
-        "items": [serialize_product(p, prices) for p in products],
-        "total": total,
-        "skip": skip,
-        "limit": limit,
-    }
+    products = crud.get_products_filtered(db, category_slug=category, metal_type=metal, search=search, tags=tags, skip=skip, limit=limit)
+    total = crud.get_products_count(db, category_slug=category, metal_type=metal, search=search, tags=tags)
+    return {"items": [serialize_product(p, prices) for p in products], "total": total, "skip": skip, "limit": limit}
+
+@router.get("/tags", response_model=List[schemas.TagResponse])
+def list_tags(db: Session = Depends(get_db)):
+    return db.query(models.Tag).order_by(models.Tag.name).all()
+
 @router.get("/{slug}/related", response_model=List[schemas.ProductResponse])
 async def get_related_products(slug: str, db: Session = Depends(get_db)):
     product = crud.get_product_by_slug(db, slug)

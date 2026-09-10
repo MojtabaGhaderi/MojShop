@@ -10,7 +10,7 @@ from app.services.pricing import serialize_product
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Category, Order, OrderStatus, Product, ProductImage, ProductMaterial, User, Variant, CartItem
+from app.models import Category, Order, OrderStatus, Product, ProductImage, ProductMaterial, User, Variant, CartItem, Tag
 from app.schemas import (
     AdminAnalytics,
     AdminUserUpdate,
@@ -30,6 +30,8 @@ from app.schemas import (
     VariantCreate,
     VariantUpdate,
     VariantResponse,
+    TagCreate,
+    TagResponse,
 )
 
 router = APIRouter(
@@ -63,7 +65,8 @@ async def list_products(
             joinedload(Product.category),
             joinedload(Product.materials),
             joinedload(Product.images),
-            joinedload(Product.variants),   # NEW
+            joinedload(Product.variants),
+            joinedload(Product.tags)
         )
         .order_by(Product.id.desc())
         .offset(skip)
@@ -79,10 +82,13 @@ async def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
     if db.query(Product).filter(Product.slug == payload.slug).first():
         raise HTTPException(status_code=400, detail="A product with this slug already exists")
 
-    data = payload.model_dump(exclude={"materials", "images"})
+    data = payload.model_dump(exclude={"materials", "images", "variants", "tag_ids"})
     product = Product(**data)
     product.materials = [ProductMaterial(**m.model_dump()) for m in payload.materials]
     product.images = [ProductImage(**i.model_dump()) for i in payload.images]
+
+    if payload.tag_ids:
+        product.tags = db.query(Tag).filter(Tag.id.in_(payload.tag_ids)).all() 
 
     db.add(product)
     db.commit()
@@ -97,7 +103,7 @@ async def update_product(product_id: int, payload: ProductUpdate, db: Session = 
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    update_data = payload.model_dump(exclude_unset=True, exclude={"materials", "images"})
+    update_data = payload.model_dump(exclude_unset=True, exclude={"materials", "images", "variants", "tag_ids"})
     for field, value in update_data.items():
         setattr(product, field, value)
 
@@ -105,6 +111,8 @@ async def update_product(product_id: int, payload: ProductUpdate, db: Session = 
         product.materials = [ProductMaterial(**m.model_dump()) for m in payload.materials]
     if payload.images is not None:
         product.images = [ProductImage(**i.model_dump()) for i in payload.images]
+    if payload.tag_ids is not None:
+        product.tags = db.query(Tag).filter(Tag.id.in_(payload.tag_ids)).all()
 
     db.commit()
     db.refresh(product)
@@ -124,6 +132,29 @@ def deactivate_product(product_id: int, db: Session = Depends(get_db)):
     db.commit()
     return None
 
+
+@router.get("/tags", response_model=List[TagResponse])
+def list_tags_admin(db: Session = Depends(get_db)):
+    return db.query(Tag).order_by(Tag.name).all()
+
+@router.post("/tags", response_model=TagResponse, status_code=status.HTTP_201_CREATED)
+def create_tag(payload: TagCreate, db: Session = Depends(get_db)):
+    if db.query(Tag).filter(Tag.slug == payload.slug).first():
+        raise HTTPException(status_code=400, detail="این برچسب از قبل وجود دارد")
+    tag = Tag(**payload.model_dump())
+    db.add(tag)
+    db.commit()
+    db.refresh(tag)
+    return tag
+
+@router.delete("/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_tag(tag_id: int, db: Session = Depends(get_db)):
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    db.delete(tag)  # removing a Tag auto-clears its product_tags rows via the association table, no manual cleanup needed
+    db.commit()
+    return None
 
 # ============================== CATEGORIES ==============================
 

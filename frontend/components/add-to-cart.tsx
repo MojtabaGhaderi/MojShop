@@ -5,6 +5,7 @@ import { useShopCart } from '@/hooks/use-shop-cart';
 import { formatPriceWithCurrency } from '@/lib/utils';
 import PriceDisplay from './price-display';
 import type { Variant } from '@/types';
+import NotifyMeForm from './notify-me-form';
 
 interface AddToCartProps {
   productId: number;
@@ -39,6 +40,9 @@ export default function AddToCart({
   const effectivePrice = calculatedPrice + (selectedVariant?.price_adjustment ?? 0);
   const isOutOfStock = effectiveStock === 0;
   const requiresVariant = activeVariants.length > 0;
+  const allOutOfStock = requiresVariant
+    ? activeVariants.every((v) => v.stock_quantity === 0)
+    : stockQuantity === 0;
 
   function handleVariantChange(variantId: string) {
     const id = variantId ? Number(variantId) : null;
@@ -124,9 +128,13 @@ export default function AddToCart({
           لطفاً یک گزینه انتخاب کنید
         </div>
       ) : isOutOfStock ? (
-        <div className="h-12 w-full rounded-lg bg-surface-sunken text-center leading-[3rem] text-sm font-medium text-primary-subtle">
-          ناموجود
-        </div>
+        allOutOfStock ? (
+          <NotifyMeForm productSlug={productSlug} />
+        ) : (
+          <div className="h-12 w-full rounded-lg bg-surface-sunken text-center leading-[3rem] text-sm font-medium text-primary-subtle">
+            این گزینه ناموجود است — گزینه دیگری را امتحان کنید
+          </div>
+        )
       ) : (
         <button
           type="button"

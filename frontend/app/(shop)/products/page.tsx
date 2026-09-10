@@ -16,6 +16,7 @@ function ProductsContent() {
   const category = searchParams.get('category') ?? '';
   const metal = (searchParams.get('metal') as MetalType) ?? '';
   const search = searchParams.get('search') ?? '';
+  const tags = searchParams.get('tags') ?? '';
   const page = Number(searchParams.get('page') ?? 1);
   const skip = (page - 1) * PRODUCTS_PAGE_SIZE;
 
@@ -31,6 +32,7 @@ function ProductsContent() {
   const { data, isLoading } = useProducts({
     category: category || undefined,
     metal: (metal as MetalType) || undefined,
+    tags: tags || undefined,   // NEW
     search: debouncedSearch || undefined,
     skip,
     limit: PRODUCTS_PAGE_SIZE,
@@ -64,6 +66,9 @@ function ProductsContent() {
   function handleMetalChange(m: MetalType | '') {
     updateParams({ metal: m });
     if (filterDrawerOpen) setFilterDrawerOpen(false);
+  }
+  function handleTagsChange(t: string) {
+    updateParams({ tags: t });
   }
 
   function handleSearchChange(value: string) {
@@ -121,9 +126,11 @@ function ProductsContent() {
         <ProductFilters
           selectedCategory={category}
           selectedMetal={metal}
+          selectedTags={tags}
           search={search}
           onCategoryChange={handleCategoryChange}
           onMetalChange={handleMetalChange}
+          onTagsChange={handleTagsChange}
           onSearchChange={handleSearchChange}
         />
 
@@ -132,11 +139,12 @@ function ProductsContent() {
           <ProductFilters
             selectedCategory={category}
             selectedMetal={metal}
+            selectedTags={tags}
             search={search}
             onCategoryChange={handleCategoryChange}
             onMetalChange={handleMetalChange}
+            onTagsChange={handleTagsChange}
             onSearchChange={handleSearchChange}
-            onClose={() => setFilterDrawerOpen(false)}
           />
         )}
 
@@ -181,8 +189,8 @@ function ProductsContent() {
                         type="button"
                         onClick={() => handlePageChange(p)}
                         className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition-colors ${p === page
-                            ? 'bg-accent text-on-accent'
-                            : 'text-primary hover:bg-surface-sunken'
+                          ? 'bg-accent text-on-accent'
+                          : 'text-primary hover:bg-surface-sunken'
                           }`}
                         aria-current={p === page ? 'page' : undefined}
                       >

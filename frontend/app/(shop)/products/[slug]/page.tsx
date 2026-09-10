@@ -1,3 +1,4 @@
+//(shop)/products/[slug]/page.tsx 
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { serverFetch } from '@/lib/api';
@@ -85,6 +86,15 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <span key={mat.id} className="rounded-full border border-border-default px-3 py-1 text-xs text-primary-muted">
                   {mat.display_name} — {mat.weight_grams} گرم
                 </span>
+              ))}
+            </div>
+          )}
+          {(product.tags?.length ?? 0) > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {product.tags.map((tag) => (
+                <a key={tag.id} href={`/products?tags=${tag.slug}`} className="rounded-full bg-surface-elevated px-3 py-1 text-xs text-primary-muted transition-colors hover:bg-accent-subtle hover:text-accent">
+                  #{tag.name}
+                </a>
               ))}
             </div>
           )}

@@ -5,6 +5,10 @@ from app import schemas, models
 from app.database import get_db
 from app.dependencies import get_current_user
 
+from app.services.invoice_service import generate_invoice_pdf
+from app.models import InvoiceStatus
+from app.crud import get_order_by_id
+
 router = APIRouter(prefix="/orders", tags=["orders"])
 
 
@@ -77,7 +81,35 @@ def get_order(
     current_user: models.User = Depends(get_current_user),
 ):
     from app import crud
-    order = crud.get_order_by_id(db, order_id, current_user.id)
+    order = get_order_by_id(db, order_id, current_user.id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
+
+
+@router.get("/{order_id}/invoice")
+def get_invoice(order_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    order = get_order_by_id(db, order_id, current_user.id)
+    if not order or not order.invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    if not order.invoice.pdf_url:
+        order.invoice.pdf_url = generate_invoice_pdf(order)
+        order.invoice.status = InvoiceStatus.GENERATED
+        db.commit()
+
+    return {"pdf_url": order.invoice.pdf_url}
+
+
+@router.get("/guest/{order_id}/invoice")
+def get_guest_invoice(order_id: int, email: str = Query(...), db: Session = Depends(get_db)):
+    order = crud.get_guest_order(db, order_id, email)
+    if not order or not order.invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    if not order.invoice.pdf_url:
+        order.invoice.pdf_url = generate_invoice_pdf(order)
+        order.invoice.status = InvoiceStatus.GENERATED
+        db.commit()
+
+    return {"pdf_url": order.invoice.pdf_url}

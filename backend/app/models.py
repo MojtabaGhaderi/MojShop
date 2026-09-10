@@ -67,6 +67,8 @@ class Product(Base):
 
     reviews: Mapped[list["Review"]] = relationship(back_populates="product", cascade="all, delete-orphan")
 
+    tags: Mapped[list["Tag"]] = relationship(secondary="product_tags", back_populates="products")
+
 
 class ProductMaterial(Base):
     __tablename__ = "product_materials"
@@ -317,4 +319,30 @@ class WishlistItem(Base):
     user: Mapped["User"] = relationship()
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
     product: Mapped["Product"] = relationship()
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+class Tag(Base):
+    __tablename__ = "tags"
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    slug: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+
+    products: Mapped[list["Product"]] = relationship(secondary="product_tags", back_populates="tags")
+
+
+class ProductTag(Base):
+    __tablename__ = "product_tags"
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), primary_key=True)
+    tag_id: Mapped[int] = mapped_column(ForeignKey("tags.id"), primary_key=True)
+
+
+class StockNotification(Base):
+    __tablename__ = "stock_notifications"
+    __table_args__ = (UniqueConstraint("product_id", "email", name="uq_stock_notif_product_email"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    product: Mapped["Product"] = relationship()
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    notified: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
