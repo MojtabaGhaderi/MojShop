@@ -10,7 +10,9 @@ from app.services.pricing import compute_current_price
 from datetime import datetime, timedelta
 from app.services.promo_service import find_valid_promo
 from app.services.shipping_service import calculate_shipping_cost
+from app.services.inventory import restore_stock
 
+from app.services.inventory import sync_product_stock
 RESERVATION_MINUTES = 15
 
 
@@ -60,12 +62,15 @@ def get_products(db: Session, skip: int = 0, limit: int = 100):
             joinedload(models.Product.category),
             joinedload(models.Product.materials),
             joinedload(models.Product.images),
+            joinedload(models.Product.tags),
+            joinedload(models.Product.variants),
         )
         .filter(models.Product.is_active == True)
         .offset(skip)
         .limit(limit)
         .all()
     )
+    
 
 
 def get_products_filtered(
@@ -84,6 +89,7 @@ def get_products_filtered(
             joinedload(models.Product.materials),
             joinedload(models.Product.images),
             joinedload(models.Product.tags),
+            joinedload(models.Product.variants),
         )
         .filter(models.Product.is_active == True)
     )
@@ -100,7 +106,17 @@ def get_products_filtered(
     
     if tags:
         tag_slugs = [t.strip() for t in tags.split(",") if t.strip()]
-        query = query.join(models.Product.tags).filter(models.Tag.slug.in_(tag_slugs))
+
+        if tag_slugs:
+            query = (
+                query
+                .join(models.Product.tags)
+                .filter(models.Tag.slug.in_(tag_slugs))
+            )
+
+    query = _apply_search_filter(query, search)
+
+    query = query.distinct()
 
     query = _apply_search_filter(query, search)
     if search:
@@ -129,12 +145,17 @@ def get_products_count(
         )
     if tags:
         tag_slugs = [t.strip() for t in tags.split(",") if t.strip()]
-        query = query.join(models.Product.tags).filter(models.Tag.slug.in_(tag_slugs))
 
+        if tag_slugs:
+            query = (
+                query
+                .join(models.Product.tags)
+                .filter(models.Tag.slug.in_(tag_slugs))
+            )
 
     query = _apply_search_filter(query, search)
 
-    return query.count()
+    return query.distinct().count()
 
 def get_product_review_stats(db: Session, product_id: int) -> tuple[float, int]:
     avg, count = db.query(
@@ -150,8 +171,13 @@ def get_product_by_slug(db: Session, slug: str):
             joinedload(models.Product.category),
             joinedload(models.Product.materials),
             joinedload(models.Product.images),
+            joinedload(models.Product.tags),
+            joinedload(models.Product.variants),
         )
-        .filter(models.Product.slug == slug, models.Product.is_active == True)
+        .filter(
+            models.Product.slug == slug,
+            models.Product.is_active == True,
+        )
         .first()
     )
 
@@ -281,8 +307,13 @@ def get_cart_items(db: Session, user_id: int):
     return (
         db.query(models.CartItem)
         .options(
-            joinedload(models.CartItem.product).joinedload(models.Product.images),
-            joinedload(models.CartItem.product).joinedload(models.Product.materials),
+            joinedload(models.CartItem.product).joinedload(
+                models.Product.images
+            ),
+            joinedload(models.CartItem.product).joinedload(
+                models.Product.materials
+            ),
+            joinedload(models.CartItem.variant),
         )
         .filter(models.CartItem.user_id == user_id)
         .all()
@@ -345,25 +376,82 @@ def clear_cart(db: Session, user_id: int):
 
 # --- Orders ---
 
+def _build_order_items(
+    entries: list[tuple],
+    prices: dict,
+    db: Session,
+):
+    """
+    entries: list of (product, variant, quantity) tuples.
 
-def _build_order_items(entries: list[tuple], prices: dict):
-    """entries: list of (product, quantity) pairs — from a stored cart OR a guest's raw item list."""
+    For products with variants, variant stock is authoritative.
+    For products without variants, product stock is authoritative.
+    """
     subtotal = 0.0
     order_items_data = []
-    for product, quantity in entries:
-        if not product or not product.is_active:
-            raise ValueError(f"Product unavailable: {getattr(product, 'id', '?')}")
-        if product.stock_quantity < quantity:
-            raise ValueError(f"Insufficient stock for {product.name}")
+    affected_products = {}
 
+    for product, variant, quantity in entries:
+        if not product or not product.is_active:
+            raise ValueError(
+                f"Product unavailable: {getattr(product, 'id', '?')}"
+            )
+
+        # Variant validation
+        if variant is not None:
+            if variant.product_id != product.id:
+                raise ValueError(
+                    f"Variant does not belong to product {product.id}"
+                )
+
+            if not variant.is_active:
+                raise ValueError(
+                    f"Variant unavailable: {variant.variant_name}"
+                )
+
+            if variant.stock_quantity < quantity:
+                raise ValueError(
+                    f"Insufficient stock for {product.name} "
+                    f"({variant.variant_name})"
+                )
+
+        # Non-variant product
+        elif product.variants:
+            raise ValueError(
+                f"Variant selection required for {product.name}"
+            )
+
+        else:
+            if product.stock_quantity < quantity:
+                raise ValueError(
+                    f"Insufficient stock for {product.name}"
+                )
+
+        # Base product price + variant adjustment
         unit_price = compute_current_price(product, prices)
+
+        if variant is not None:
+            unit_price = round(
+                unit_price + variant.price_adjustment,
+                2,
+            )
+
         subtotal += unit_price * quantity
 
         materials_snapshot = [
-            {"metal_type": m.metal_type.value, "weight_grams": m.weight_grams, "display_name": m.display_name}
+            {
+                "metal_type": m.metal_type.value,
+                "weight_grams": m.weight_grams,
+                "display_name": m.display_name,
+            }
             for m in product.materials
         ]
-        primary_image = next((img.url for img in product.images if img.is_primary), None)
+
+        primary_image = next(
+            (img.url for img in product.images if img.is_primary),
+            None,
+        )
+
         if primary_image is None and product.images:
             primary_image = product.images[0].url
 
@@ -374,28 +462,74 @@ def _build_order_items(entries: list[tuple], prices: dict):
             "quantity": quantity,
             "materials_snapshot": materials_snapshot,
             "image_url": primary_image,
+            "variant_id": variant.id if variant else None,
+            "variant_name": variant.variant_name if variant else None,
         })
-        product.stock_quantity -= quantity  # caller commits
+
+        # Deduct from the authoritative inventory source.
+        if variant is not None:
+            variant.stock_quantity -= quantity
+            affected_products[product.id] = product
+        else:
+            product.stock_quantity -= quantity
+
+    # Keep Product.stock_quantity synchronized with variant stock.
+    for product in affected_products.values():
+        sync_product_stock(product, db)
 
     return order_items_data, round(subtotal, 2)
 
-
-
 def release_expired_reservations(db: Session):
-    """Lazy sweep — call this at the start of any endpoint where a stale hold
-    would otherwise block a real customer. Restores stock, cancels the order."""
+    """
+    Lazy sweep — call this at the start of any endpoint where a stale hold
+    would otherwise block a real customer.
+
+    Restores stock to the correct inventory source and cancels the order.
+    """
+
     expired = (
         db.query(models.Order)
         .options(joinedload(models.Order.items))
-        .filter(models.Order.status == models.OrderStatus.PENDING, models.Order.reserved_until < datetime.utcnow())
+        .filter(
+            models.Order.status == models.OrderStatus.PENDING,
+            models.Order.reserved_until < datetime.utcnow(),
+        )
         .all()
     )
+
     for order in expired:
         for item in order.items:
-            product = db.query(models.Product).filter(models.Product.slug == item.product_slug).first()
-            if product:
-                product.stock_quantity += item.quantity
+            product = (
+                db.query(models.Product)
+                .filter(
+                    models.Product.slug == item.product_slug
+                )
+                .first()
+            )
+
+            if not product:
+                continue
+
+            variant = None
+
+            if item.variant_id is not None:
+                variant = (
+                    db.query(models.Variant)
+                    .filter(
+                        models.Variant.id == item.variant_id
+                    )
+                    .first()
+                )
+
+            restore_stock(
+                product=product,
+                quantity=item.quantity,
+                db=db,
+                variant=variant,
+            )
+
         order.status = models.OrderStatus.CANCELLED
+
     if expired:
         db.commit()
 
@@ -405,8 +539,12 @@ async def create_order(db: Session, user_id: int, address_id: int, cart_items: l
 
     address = db.query(models.Address).filter(models.Address.id == address_id).first()
     prices = await fetch_live_prices()
-    entries = [(item.product, item.quantity) for item in cart_items]
-    order_items_data, subtotal = _build_order_items(entries, prices)
+    entries = [
+    (item.product, item.variant, item.quantity)
+    for item in cart_items
+    ]
+
+    order_items_data, subtotal = _build_order_items(entries, prices,db)
 
     shipping_cost = calculate_shipping_cost(db, address.city)
 
@@ -450,14 +588,38 @@ async def create_guest_order(db: Session, guest_email: str, guest_name: str, add
 
     prices = await fetch_live_prices()
     entries = []
+
     for entry in items:
         product = (
             db.query(models.Product)
-            .options(joinedload(models.Product.materials), joinedload(models.Product.images))
+            .options(
+                joinedload(models.Product.materials),
+                joinedload(models.Product.images),
+            )
             .filter(models.Product.id == entry["product_id"])
             .first()
         )
-        entries.append((product, entry["quantity"]))
+
+        variant = None
+
+        if entry.get("variant_id") is not None:
+            variant = (
+                db.query(models.Variant)
+                .filter(
+                    models.Variant.id == entry["variant_id"],
+                    models.Variant.product_id == entry["product_id"],
+                )
+                .first()
+            )
+
+            if not variant:
+                raise ValueError(
+                    f"Variant not found: {entry['variant_id']}"
+                )
+
+        entries.append(
+            (product, variant, entry["quantity"])
+        )
 
     order_items_data, subtotal = _build_order_items(entries, prices)
     shipping_cost = calculate_shipping_cost(db, address_data["city"])
@@ -523,12 +685,21 @@ def cancel_order(db: Session, order_id: int, user_id: int):
         )
     
     # Restore stock
-    for item in order.items:
-        product = db.query(models.Product).filter(
-            models.Product.slug == item.product_slug
-        ).first()
-        if product:
-            product.stock_quantity += item.quantity
+    variant = None
+
+    if item.variant_id is not None:
+        variant = (
+            db.query(models.Variant)
+            .filter(models.Variant.id == item.variant_id)
+            .first()
+        )
+
+    restore_stock(
+        product=product,
+        quantity=item.quantity,
+        variant=variant,
+        db=db,
+    )
     
     order.status = models.OrderStatus.CANCELLED
     db.commit()
@@ -575,8 +746,8 @@ def _apply_search_filter(query, search: str | None):
             or_(
                 models.Product.name.ilike(term_ilike),
                 models.Product.description.ilike(term_ilike),
-                func.similarity(models.Product.name, term) > 0.9,
-                func.similarity(models.Product.description, term) > 0.9,
+                func.similarity(models.Product.name, term) > 0.2,
+                func.similarity(models.Product.description, term) > 0.2,
             )
         )
     return query.filter(*conditions)  # every word must match somewhere — real multi-word search

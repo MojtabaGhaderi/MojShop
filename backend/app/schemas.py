@@ -126,12 +126,19 @@ class TagCreate(BaseModel):
     name: str
     slug: str
 
+
+class TagUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+
+
 class TagResponse(BaseModel):
     id: int
     name: str
     slug: str
     class Config:
         from_attributes = True
+        
 
 class ProductResponse(ProductBase):
     id: int
@@ -253,13 +260,10 @@ class OrderItemResponse(BaseModel):
     product_slug: str
     unit_price: float
     quantity: int
-    materials_snapshot: Optional[list|dict] = None
+    materials_snapshot: Optional[list | dict] = None
     image_url: Optional[str] = None
+    variant_id: Optional[int] = None
     variant_name: Optional[str] = None
-
-
-    class Config:
-        from_attributes = True
 
 
 

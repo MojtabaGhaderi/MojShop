@@ -217,11 +217,10 @@ class Order(Base):
 
 class OrderItem(Base):
     __tablename__ = "order_items"
-
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
     order: Mapped["Order"] = relationship(back_populates="items")
-    
+
     product_name: Mapped[str] = mapped_column(String(255), nullable=False)
     product_slug: Mapped[str] = mapped_column(String(255), nullable=False)
     unit_price: Mapped[float] = mapped_column(Float, nullable=False)
@@ -229,6 +228,10 @@ class OrderItem(Base):
     materials_snapshot: Mapped[dict | None] = mapped_column(JSON)
     image_url: Mapped[str | None] = mapped_column(String(500))
 
+    variant_id: Mapped[int | None] = mapped_column(
+        ForeignKey("variants.id"),
+        nullable=True,
+    )
     variant_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
 

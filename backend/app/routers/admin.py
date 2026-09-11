@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.services.price_service import fetch_live_prices
 from app.services.pricing import serialize_product
+from app.services.inventory import sync_product_stock
 
 from app.database import get_db
 from app.dependencies import get_current_admin
@@ -32,6 +33,7 @@ from app.schemas import (
     VariantResponse,
     TagCreate,
     TagResponse,
+    TagUpdate,
 )
 
 router = APIRouter(
@@ -137,14 +139,93 @@ def deactivate_product(product_id: int, db: Session = Depends(get_db)):
 def list_tags_admin(db: Session = Depends(get_db)):
     return db.query(Tag).order_by(Tag.name).all()
 
-@router.post("/tags", response_model=TagResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/tags",
+    response_model=TagResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+
+
+@router.post(
+    "/tags",
+    response_model=TagResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_tag(payload: TagCreate, db: Session = Depends(get_db)):
     if db.query(Tag).filter(Tag.slug == payload.slug).first():
-        raise HTTPException(status_code=400, detail="این برچسب از قبل وجود دارد")
+        raise HTTPException(
+            status_code=400,
+            detail="برچسبی با این اسلاگ از قبل وجود دارد",
+        )
+
+    if db.query(Tag).filter(Tag.name == payload.name).first():
+        raise HTTPException(
+            status_code=400,
+            detail="برچسبی با این نام از قبل وجود دارد",
+        )
+
     tag = Tag(**payload.model_dump())
+
     db.add(tag)
     db.commit()
     db.refresh(tag)
+
+    return tag
+
+@router.put("/tags/{tag_id}", response_model=TagResponse)
+def update_tag(
+    tag_id: int,
+    payload: TagUpdate,
+    db: Session = Depends(get_db),
+):
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+
+    if not tag:
+        raise HTTPException(
+            status_code=404,
+            detail="Tag not found",
+        )
+
+    update_data = payload.model_dump(exclude_unset=True)
+
+    if "slug" in update_data:
+        existing_slug = (
+            db.query(Tag)
+            .filter(
+                Tag.slug == update_data["slug"],
+                Tag.id != tag_id,
+            )
+            .first()
+        )
+
+        if existing_slug:
+            raise HTTPException(
+                status_code=400,
+                detail="برچسبی با این اسلاگ از قبل وجود دارد",
+            )
+
+    if "name" in update_data:
+        existing_name = (
+            db.query(Tag)
+            .filter(
+                Tag.name == update_data["name"],
+                Tag.id != tag_id,
+            )
+            .first()
+        )
+
+        if existing_name:
+            raise HTTPException(
+                status_code=400,
+                detail="برچسبی با این نام از قبل وجود دارد",
+            )
+
+    for field, value in update_data.items():
+        setattr(tag, field, value)
+
+    db.commit()
+    db.refresh(tag)
+
     return tag
 
 @router.delete("/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -155,6 +236,42 @@ def delete_tag(tag_id: int, db: Session = Depends(get_db)):
     db.delete(tag)  # removing a Tag auto-clears its product_tags rows via the association table, no manual cleanup needed
     db.commit()
     return None
+
+@router.put("/tags/{tag_id}", response_model=TagResponse)
+def update_tag(
+    tag_id: int,
+    payload: TagUpdate,
+    db: Session = Depends(get_db),
+):
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+
+    data = payload.model_dump(exclude_unset=True)
+
+    if "slug" in data:
+        clash = (
+            db.query(Tag)
+            .filter(
+                Tag.slug == data["slug"],
+                Tag.id != tag_id,
+            )
+            .first()
+        )
+        if clash:
+            raise HTTPException(
+                status_code=400,
+                detail="A tag with this slug already exists",
+            )
+
+    for field, value in data.items():
+        setattr(tag, field, value)
+
+    db.commit()
+    db.refresh(tag)
+
+    return tag
 
 # ============================== CATEGORIES ==============================
 
@@ -371,36 +488,81 @@ def create_variant(product_id: int, payload: VariantCreate, db: Session = Depend
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    variant = Variant(product_id=product_id, **payload.model_dump())
+    variant = Variant(
+    product_id=product_id,
+    **payload.model_dump(),
+    )
+
     db.add(variant)
+    db.flush()
+
+    sync_product_stock(product, db)
+
     db.commit()
     db.refresh(variant)
+
     return variant
 
 
 @router.put("/variants/{variant_id}", response_model=VariantResponse)
-def update_variant(variant_id: int, payload: VariantUpdate, db: Session = Depends(get_db)):
-    variant = db.query(Variant).filter(Variant.id == variant_id).first()
+def update_variant(
+    variant_id: int,
+    payload: VariantUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    variant = (
+        db.query(Variant)
+        .filter(Variant.id == variant_id)
+        .first()
+    )
+
     if not variant:
         raise HTTPException(status_code=404, detail="Variant not found")
+
+    product = variant.product
+
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(variant, field, value)
+
+    db.flush()
+
+    sync_product_stock(product, db)
+
     db.commit()
     db.refresh(variant)
-    return variant
 
+    return variant
 
 @router.delete("/variants/{variant_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_variant(variant_id: int, db: Session = Depends(get_db)):
     variant = db.query(Variant).filter(Variant.id == variant_id).first()
     if not variant:
         raise HTTPException(status_code=404, detail="Variant not found")
+    existing_order_item = (
+    db.query(models.OrderItem)
+    .filter(models.OrderItem.variant_id == variant_id)
+    .first()
+    )
+
+    if existing_order_item:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete a variant that has been ordered",
+        )
 
     # Cart lines referencing this variant would otherwise violate the FK constraint,
     # or (if we nulled variant_id instead) silently mis-price the item back to base.
     # Removing the stale cart line is the least-wrong option of the three.
     db.query(CartItem).filter(CartItem.variant_id == variant_id).delete()
 
+    product = variant.product
+
     db.delete(variant)
+    db.flush()
+
+    sync_product_stock(product, db)
+
     db.commit()
+
     return None
