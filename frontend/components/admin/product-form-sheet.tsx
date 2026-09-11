@@ -12,7 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Trash2, Plus } from 'lucide-react';
 import { useCreateProduct, useUpdateProduct } from '@/hooks/use-admin-products';
 import { ProductImageUploader } from '@/components/admin/product-image-uploader';
-import type { Category, MetalType, Product, ProductMaterialInput } from '@/types';
+import type {
+    Category,
+    MetalType,
+    Product,
+    ProductMaterialInput,
+} from '@/types';
+import { useAdminTags, useCreateTag } from '@/hooks/use-admin-tags';
 import { VariantManager } from '@/components/admin/variant-manager';
 
 const METAL_TYPES: { value: MetalType; label: string }[] = [
@@ -48,7 +54,12 @@ export function ProductFormSheet({ open, onOpenChange, product, categories }: Pr
     const [stock, setStock] = useState('0');
     const [isActive, setIsActive] = useState(true);
     const [materials, setMaterials] = useState<ProductMaterialInput[]>([]);
+    const [tagIds, setTagIds] = useState<number[]>([]);
+    const [newTagName, setNewTagName] = useState('');
     const [createdProductId, setCreatedProductId] = useState<number | null>(null);
+
+    const { data: tags = [] } = useAdminTags();
+    const createTag = useCreateTag();
 
     useEffect(() => {
         if (!open) return;
@@ -62,12 +73,31 @@ export function ProductFormSheet({ open, onOpenChange, product, categories }: Pr
             setWeight(String(product.total_weight_grams));
             setStock(String(product.stock_quantity));
             setIsActive(product.is_active);
-            setMaterials(product.materials.map((m) => ({ metal_type: m.metal_type, weight_grams: m.weight_grams, display_name: m.display_name })));
+            setMaterials(
+                product.materials.map((m) => ({
+                    metal_type: m.metal_type,
+                    weight_grams: m.weight_grams,
+                    display_name: m.display_name
+                }))
+            );
+
+            setTagIds(product.tags?.map((tag) => tag.id) ?? []);
+            setNewTagName('');
             setCreatedProductId(null);
         } else {
-            setName(''); setSlug(''); setSlugTouched(false); setDescription('');
-            setCategoryId(''); setBasePrice('0'); setWeight('0'); setStock('0');
-            setIsActive(true); setMaterials([]); setCreatedProductId(null);
+            setName('');
+            setSlug('');
+            setSlugTouched(false);
+            setDescription('');
+            setCategoryId('');
+            setBasePrice('0');
+            setWeight('0');
+            setStock('0');
+            setIsActive(true);
+            setMaterials([]);
+            setTagIds([]);
+            setNewTagName('');
+            setCreatedProductId(null);
         }
     }, [open, product]);
 
@@ -89,7 +119,8 @@ export function ProductFormSheet({ open, onOpenChange, product, categories }: Pr
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         const payload = {
-            name, slug,
+            name,
+            slug,
             description: description || undefined,
             category_id: categoryId ? Number(categoryId) : undefined,
             base_price: Number(basePrice),
@@ -97,6 +128,7 @@ export function ProductFormSheet({ open, onOpenChange, product, categories }: Pr
             stock_quantity: Number(stock),
             is_active: isActive,
             materials,
+            tag_ids: tagIds,
         };
 
         if (isEditing && product) {
@@ -141,6 +173,66 @@ export function ProductFormSheet({ open, onOpenChange, product, categories }: Pr
                                 {categories.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
+                    </div>
+                    <div className="space-y-3">
+                        <Label>برچسب‌ها</Label>
+
+                        <div className="flex flex-wrap gap-2">
+                            {tags.map((tag) => {
+                                const selected = tagIds.includes(tag.id);
+
+                                return (
+                                    <button
+                                        key={tag.id}
+                                        type="button"
+                                        onClick={() => {
+                                            setTagIds((current) =>
+                                                selected
+                                                    ? current.filter((id) => id !== tag.id)
+                                                    : [...current, tag.id]
+                                            );
+                                        }}
+                                        className={`rounded-full border px-3 py-1 text-sm transition ${selected
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-background hover:bg-muted'
+                                            }`}
+                                    >
+                                        {tag.name}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="برچسب جدید..."
+                                value={newTagName}
+                                onChange={(e) => setNewTagName(e.target.value)}
+                            />
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={!newTagName.trim() || createTag.isPending}
+                                onClick={async () => {
+                                    const name = newTagName.trim();
+
+                                    if (!name) return;
+
+                                    const slug = slugify(name);
+
+                                    const tag = await createTag.mutateAsync({
+                                        name,
+                                        slug,
+                                    });
+
+                                    setTagIds((current) => [...current, tag.id]);
+                                    setNewTagName('');
+                                }}
+                            >
+                                {createTag.isPending ? '...' : 'افزودن'}
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-3">

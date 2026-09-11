@@ -182,6 +182,8 @@ export interface OrderItem {
   quantity: number;
   materials_snapshot?: unknown;
   image_url: string | null;
+  variant_id: number | null;
+  variant_name: string | null;
 }
 
 export interface Invoice {
@@ -287,6 +289,7 @@ export interface ProductCreateInput {
   is_active?: boolean;
   materials?: ProductMaterialInput[];
   images?: ProductImageInput[];
+  tag_ids?: number[];
 }
 
 // --- Guest checkout ---
