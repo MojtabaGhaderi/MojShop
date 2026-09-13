@@ -56,6 +56,7 @@ export function ProductFormSheet({ open, onOpenChange, product, categories }: Pr
     const [materials, setMaterials] = useState<ProductMaterialInput[]>([]);
     const [tagIds, setTagIds] = useState<number[]>([]);
     const [newTagName, setNewTagName] = useState('');
+    const [imageUrl, setImageUrl] = useState('');
     const [createdProductId, setCreatedProductId] = useState<number | null>(null);
 
     const { data: tags = [] } = useAdminTags();
@@ -174,6 +175,7 @@ export function ProductFormSheet({ open, onOpenChange, product, categories }: Pr
                             </SelectContent>
                         </Select>
                     </div>
+                    <div className="space-y-2"><Label>آدرس تصویر</Label><Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} /></div>
                     <div className="space-y-3">
                         <Label>برچسب‌ها</Label>
 

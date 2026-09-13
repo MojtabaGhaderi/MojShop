@@ -4,6 +4,7 @@ export interface Category {
   slug: string;
   description: string | null;
   is_active: boolean;
+  image_url: string | null;
 }
 
 export interface Material {
@@ -411,4 +412,18 @@ export interface Tag {
   id: number;
   name: string;
   slug: string;
+}
+
+
+export type BannerPlacement = 'hero' | 'feature';
+
+export interface Banner {
+  id: number;
+  image_url: string;
+  title: string | null;
+  subtitle: string | null;
+  link_url: string | null;
+  placement: BannerPlacement;
+  is_active: boolean;
+  sort_order: number;
 }

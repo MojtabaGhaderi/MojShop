@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import datetime
 
-from app.models import MetalType, OrderStatus, InvoiceStatus, PromoType
+from app.models import MetalType, OrderStatus, InvoiceStatus, PromoType, BannerPlacement
 
 
 # --- Category schemas ---
@@ -14,13 +14,14 @@ class CategoryBase(BaseModel):
 
 
 class CategoryCreate(CategoryBase):
-    pass
+    image_url: Optional[str] = None
 
 
 class CategoryResponse(CategoryBase):
     id: int
     is_active: bool
     created_at: datetime
+    image_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -348,6 +349,7 @@ class CategoryUpdate(BaseModel):
     slug: Optional[str] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
+    image_url: Optional[str] = None
 
 
 class OrderStatusUpdate(BaseModel):
@@ -529,3 +531,34 @@ class TrackingUpdate(BaseModel):
 
 class VerifyEmailRequest(BaseModel):
     token: str
+
+
+class BannerCreate(BaseModel):
+    image_url: str
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    link_url: Optional[str] = None
+    placement: BannerPlacement = BannerPlacement.HERO
+    is_active: bool = True
+    sort_order: int = 0
+
+class BannerUpdate(BaseModel):
+    image_url: Optional[str] = None
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    link_url: Optional[str] = None
+    placement: Optional[BannerPlacement] = None
+    is_active: Optional[bool] = None
+    sort_order: Optional[int] = None
+
+class BannerResponse(BaseModel):
+    id: int
+    image_url: str
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    link_url: Optional[str] = None
+    placement: BannerPlacement
+    is_active: bool
+    sort_order: int
+    class Config:
+        from_attributes = True

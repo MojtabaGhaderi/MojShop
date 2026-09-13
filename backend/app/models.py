@@ -42,6 +42,8 @@ class Category(Base):
 
     products: Mapped[list["Product"]] = relationship(back_populates="category")
 
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
 
 class Product(Base):
     __tablename__ = "products"
@@ -380,4 +382,23 @@ class EmailVerificationToken(Base):
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     expires_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     used_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+
+class BannerPlacement(str, enum.Enum):
+    HERO = "hero"
+    FEATURE = "feature"
+
+
+class Banner(Base):
+    __tablename__ = "banners"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    image_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    subtitle: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    link_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    placement: Mapped[BannerPlacement] = mapped_column(Enum(BannerPlacement), default=BannerPlacement.HERO)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    sort_order: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)

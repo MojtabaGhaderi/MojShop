@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
+
 import {
     LayoutDashboard,
     Package,
@@ -12,7 +13,8 @@ import {
     FolderTree,
     Users,
     Tags,
-    Menu
+    Menu,
+    ImageIcon
 } from 'lucide-react'; import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 
@@ -23,6 +25,7 @@ const NAV_ITEMS = [
     { href: '/dashboard/categories', label: 'دسته‌بندی‌ها', icon: FolderTree },
     { href: '/dashboard/tags', label: 'برچسب‌ها', icon: Tags },
     { href: '/dashboard/customers', label: 'مشتریان', icon: Users },
+    { href: '/dashboard/banners', label: 'بنرها', icon: ImageIcon }
 ];
 
 function SidebarNav({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {

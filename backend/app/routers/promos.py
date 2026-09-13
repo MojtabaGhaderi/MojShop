@@ -36,3 +36,15 @@ def create_promo(payload: PromoCodeCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(promo)
     return promo
+
+
+@router.get("/active", response_model=list[PromoCodeResponse])
+def list_active_promos(db: Session = Depends(get_db)):
+    now = datetime.utcnow()
+    promos = (
+        db.query(PromoCode)
+        .filter(PromoCode.is_active == True)
+        .filter((PromoCode.expires_at == None) | (models.PromoCode.expires_at > now))
+        .all()
+    )
+    return [p for p in promos if p.usage_limit is None or p.used_count < p.usage_limit]

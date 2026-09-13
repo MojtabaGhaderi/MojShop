@@ -10,9 +10,10 @@ from app.services.price_service import fetch_live_prices
 from app.services.pricing import serialize_product
 from app.services.inventory import sync_product_stock, restore_stock
 
+
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Category, Order, OrderStatus, Product, ProductImage, ProductMaterial, User, Variant, CartItem, Tag
+from app.models import Category, Order, OrderStatus, Product, ProductImage, ProductMaterial, User, Variant, CartItem, Tag, Banner, BannerPlacement
 from app.schemas import (
     AdminAnalytics,
     AdminUserUpdate,
@@ -36,6 +37,9 @@ from app.schemas import (
     TagResponse,
     TagUpdate,
     TrackingUpdate,
+    BannerCreate,
+    BannerUpdate,
+    BannerResponse
 )
 
 from app.services.notification_service import notify_stock_subscribers
@@ -668,3 +672,37 @@ def update_tracking(order_id: int, payload: TrackingUpdate, db: Session = Depend
     db.refresh(order)
     return order
 
+
+
+
+@router.get("/banners", response_model=List[BannerResponse])
+def list_banners_admin(db: Session = Depends(get_db)):
+    return db.query(Banner).order_by(Banner.sort_order).all()
+
+@router.post("/banners", response_model=BannerResponse, status_code=status.HTTP_201_CREATED)
+def create_banner(payload: BannerCreate, db: Session = Depends(get_db)):
+    banner = Banner(**payload.model_dump())
+    db.add(banner)
+    db.commit()
+    db.refresh(banner)
+    return banner
+
+@router.put("/banners/{banner_id}", response_model=BannerResponse)
+def update_banner(banner_id: int, payload: BannerUpdate, db: Session = Depends(get_db)):
+    banner = db.query(Banner).filter(Banner.id == banner_id).first()
+    if not banner:
+        raise HTTPException(status_code=404, detail="Banner not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(banner, field, value)
+    db.commit()
+    db.refresh(banner)
+    return banner
+
+@router.delete("/banners/{banner_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_banner(banner_id: int, db: Session = Depends(get_db)):
+    banner = db.query(Banner).filter(Banner.id == banner_id).first()
+    if not banner:
+        raise HTTPException(status_code=404, detail="Banner not found")
+    db.delete(banner)
+    db.commit()
+    return None
