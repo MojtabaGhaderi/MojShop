@@ -45,3 +45,5 @@ coverage/
 dist/
 build/
 EOF
+
+sent_emails/

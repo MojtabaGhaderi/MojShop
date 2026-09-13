@@ -43,6 +43,7 @@ export default function LoginPage() {
                         className="mt-1 w-full rounded border border-border-default bg-surface px-3 py-2 text-primary"
                     />
                 </div>
+                <Link href="/forgot-password" className="text-xs text-accent hover:underline">فراموشی رمز عبور؟</Link>
                 {loginError && (
                     <p className="text-sm text-red-500">
                         {loginError instanceof Error ? loginError.message : 'خطا در ورود'}

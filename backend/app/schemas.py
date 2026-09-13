@@ -308,8 +308,12 @@ class OrderResponse(BaseModel):
     total: float
     created_at: datetime
     updated_at: datetime
+    tracking_number: Optional[str] = None
+    tracking_url: Optional[str] = None
+    delivered_at: Optional[datetime] = None
     class Config:
         from_attributes = True
+        
 
 
 
@@ -481,6 +485,7 @@ class ReviewUpdate(BaseModel):
 class ReviewUserResponse(BaseModel):
     id: int
     full_name: Optional[str] = None
+    is_verified: bool
     class Config:
         from_attributes = True
 
@@ -509,3 +514,18 @@ class WishlistItemResponse(BaseModel):
 
 class StockNotifyRequest(BaseModel):
     email: EmailStr
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6, max_length=72)
+
+class TrackingUpdate(BaseModel):
+    tracking_number: Optional[str] = None
+    tracking_url: Optional[str] = None
+
+class VerifyEmailRequest(BaseModel):
+    token: str

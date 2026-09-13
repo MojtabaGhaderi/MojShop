@@ -24,7 +24,7 @@ function errorDetail(err: unknown): string {
 }
 
 export default function CheckoutPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const cart = useShopCart();
   const { addresses, isLoading: addrLoading } = useAddresses();
   const createOrder = useCreateOrder();
@@ -155,6 +155,11 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
       <h1 className="text-2xl font-bold text-primary">تکمیل سفارش</h1>
+      {isAuthenticated && user && !user.is_verified && (
+        <div className="mt-4 rounded-lg bg-yellow-500/10 px-4 py-3 text-sm text-yellow-700">
+          ایمیل شما هنوز تایید نشده است. برای تایید، ایمیل ارسال‌شده هنگام ثبت‌نام را بررسی کنید.
+        </div>
+      )}
 
       <section className="mt-6 rounded-xl border border-border-default bg-surface p-5">
         <h2 className="text-lg font-semibold text-primary">خلاصه سبد</h2>

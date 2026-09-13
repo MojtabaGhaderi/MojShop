@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://192.168.1.144:8000"  # used to build the ZarinPal callback_url
     # FRONTEND_URL: str = "http://10.209.61.91:3000"  # used to build the ZarinPal callback_url
 
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "no-reply@mojshop.local"
+    SMTP_FROM_NAME: str = "موج گالری"
+
 
     class Config:
         env_file = ".env"

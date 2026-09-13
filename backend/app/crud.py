@@ -1,3 +1,4 @@
+#crud.py
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_
 
@@ -118,7 +119,6 @@ def get_products_filtered(
 
     query = query.distinct()
 
-    query = _apply_search_filter(query, search)
     if search:
         query = query.order_by(func.similarity(models.Product.name, search).desc())
     
@@ -529,6 +529,7 @@ def release_expired_reservations(db: Session):
             )
 
         order.status = models.OrderStatus.CANCELLED
+        order.reserved_until = None
 
     if expired:
         db.commit()
@@ -621,7 +622,7 @@ async def create_guest_order(db: Session, guest_email: str, guest_name: str, add
             (product, variant, entry["quantity"])
         )
 
-    order_items_data, subtotal = _build_order_items(entries, prices)
+    order_items_data, subtotal = _build_order_items(entries, prices, db)
     shipping_cost = calculate_shipping_cost(db, address_data["city"])
 
     promo, discount_amount, promo_error = (None, 0.0, None)
@@ -670,43 +671,95 @@ def get_guest_order(db: Session, order_id: int, guest_email: str):
 
 def cancel_order(db: Session, order_id: int, user_id: int):
     """
-    Cancel order and restore stock. Users can cancel pending orders.
+    Cancel a user's pending order and restore its reserved inventory.
     """
-    order = db.query(models.Order).filter(
-        models.Order.id == order_id,
-        models.Order.user_id == user_id,
-        models.Order.status == models.OrderStatus.PENDING
-    ).first()
-    
+
+    order = (
+        db.query(models.Order)
+        .options(joinedload(models.Order.items))
+        .filter(
+            models.Order.id == order_id,
+            models.Order.user_id == user_id,
+        )
+        .first()
+    )
+
     if not order:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order not found or cannot be cancelled"
+            detail="Order not found",
         )
-    
-    # Restore stock
-    variant = None
 
-    if item.variant_id is not None:
-        variant = (
-            db.query(models.Variant)
-            .filter(models.Variant.id == item.variant_id)
+    if order.status != models.OrderStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Order is '{order.status.value}' and cannot be cancelled",
+        )
+
+    # Do not allow cancellation while a payment transaction is pending.
+    pending_payment = (
+        db.query(models.Payment)
+        .filter(
+            models.Payment.order_id == order.id,
+            models.Payment.status == models.PaymentStatus.PENDING,
+        )
+        .first()
+    )
+
+    if pending_payment:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This order has a payment in progress and cannot be cancelled",
+        )
+
+    for item in order.items:
+        product = (
+            db.query(models.Product)
+            .filter(models.Product.slug == item.product_slug)
             .first()
         )
 
-    restore_stock(
-        product=product,
-        quantity=item.quantity,
-        variant=variant,
-        db=db,
-    )
-    
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"Cannot restore inventory for order item "
+                    f"{item.id}: product not found"
+                ),
+            )
+
+        variant = None
+
+        if item.variant_id is not None:
+            variant = (
+                db.query(models.Variant)
+                .filter(models.Variant.id == item.variant_id)
+                .first()
+            )
+
+            if not variant:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=(
+                        f"Cannot restore inventory for order item "
+                        f"{item.id}: variant not found"
+                    ),
+                )
+
+        restore_stock(
+            product=product,
+            quantity=item.quantity,
+            db=db,
+            variant=variant,
+        )
+
     order.status = models.OrderStatus.CANCELLED
+    order.reserved_until = None
+
     db.commit()
     db.refresh(order)
+
     return order
-
-
 def get_orders_by_user(db: Session, user_id: int):
     return (
         db.query(models.Order)

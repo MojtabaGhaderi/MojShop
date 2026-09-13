@@ -115,6 +115,8 @@ class User(Base):
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
     back_populates="user", cascade="all, delete-orphan")
 
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
@@ -213,6 +215,10 @@ class Order(Base):
     payment: Mapped["Payment"] = relationship(back_populates="order", uselist=False, cascade="all, delete-orphan")
 
     reserved_until: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    tracking_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    tracking_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    delivered_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class OrderItem(Base):
@@ -348,4 +354,30 @@ class StockNotification(Base):
     product: Mapped["Product"] = relationship()
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     notified: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user: Mapped["User"] = relationship()
+
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+    used_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+
+class EmailVerificationToken(Base):
+    __tablename__ = "email_verification_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user: Mapped["User"] = relationship()
+
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+    used_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)

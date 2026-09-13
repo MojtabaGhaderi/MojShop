@@ -1,4 +1,5 @@
 
+//(shop) orders/[id]/page.tsx
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
@@ -10,6 +11,7 @@ import { useOrder, useGuestOrder } from '@/hooks/use-orders';
 import { useCreatePayment } from '@/hooks/use-payments';
 import { formatPriceWithCurrency } from '@/lib/utils';
 import type { OrderStatus } from '@/types';
+import { api } from '@/lib/api';
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
     pending: 'در انتظار',
@@ -143,6 +145,14 @@ function OrderDetailContent() {
             {order.invoice && (
                 <p className="mt-2 text-xs text-primary-subtle">
                     فاکتور: {order.invoice.invoice_number}
+                </p>
+            )}
+            {order.tracking_number && (
+                <p className="mt-2 text-sm text-primary-muted">
+                    کد رهگیری: <span className="font-medium text-primary">{order.tracking_number}</span>
+                    {order.tracking_url && (
+                        <a href={order.tracking_url} target="_blank" rel="noopener noreferrer" className="ms-2 text-accent hover:underline">پیگیری مرسوله</a>
+                    )}
                 </p>
             )}
 
@@ -306,6 +316,23 @@ function OrderDetailContent() {
                             : 'پرداخت سفارش'}
                     </button>
                 </section>
+            )}
+            {order.status === 'pending' && !guestEmail && (
+                <button
+                    type="button"
+                    onClick={async () => {
+                        if (!confirm('آیا از لغو این سفارش مطمئن هستید؟')) return;
+                        try {
+                            await api.post(`/orders/${order.id}/cancel`);
+                            window.location.reload();
+                        } catch {
+                            alert('خطا در لغو سفارش');
+                        }
+                    }}
+                    className="mt-3 w-full text-center text-sm text-red-500 hover:underline"
+                >
+                    لغو سفارش
+                </button>
             )}
         </div>
     );

@@ -102,6 +102,7 @@ export interface AuthUser {
   is_admin: boolean;
   is_active: boolean;
   created_at: string;
+  is_verified: boolean;
 }
 
 export interface LoginRequest {
@@ -211,6 +212,9 @@ export interface Order {
   total: number;
   created_at: string;
   updated_at: string;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  delivered_at: string | null;
 }
 
 export interface OrderCreate {

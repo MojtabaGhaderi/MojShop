@@ -1,3 +1,4 @@
+#admin.py
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -7,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.services.price_service import fetch_live_prices
 from app.services.pricing import serialize_product
-from app.services.inventory import sync_product_stock
+from app.services.inventory import sync_product_stock, restore_stock
 
 from app.database import get_db
 from app.dependencies import get_current_admin
@@ -34,7 +35,11 @@ from app.schemas import (
     TagCreate,
     TagResponse,
     TagUpdate,
+    TrackingUpdate,
 )
+
+from app.services.notification_service import notify_stock_subscribers
+from app.services.email_service import send_email, build_shipping_notification_email
 
 router = APIRouter(
     prefix="/admin",
@@ -106,6 +111,11 @@ async def update_product(product_id: int, payload: ProductUpdate, db: Session = 
         raise HTTPException(status_code=404, detail="Product not found")
 
     update_data = payload.model_dump(exclude_unset=True, exclude={"materials", "images", "variants", "tag_ids"})
+    # stock_quantity is derived once a product has variants — never let a manual
+    # edit here fight with sync_product_stock on the next variant change.
+    if product.variants and "stock_quantity" in update_data:
+        update_data.pop("stock_quantity")
+
     for field, value in update_data.items():
         setattr(product, field, value)
 
@@ -368,24 +378,101 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
     return order
 
 @router.patch("/orders/{order_id}/status", response_model=OrderResponse)
-def update_order_status(order_id: int, payload: OrderStatusUpdate, db: Session = Depends(get_db)):
-    order = db.query(Order).filter(Order.id == order_id).first()
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
+def update_order_status(
+    order_id: int,
+    payload: OrderStatusUpdate,
+    db: Session = Depends(get_db),
+):
+    order = (
+        db.query(Order)
+        .options(joinedload(Order.items))
+        .filter(Order.id == order_id)
+        .first()
+    )
 
-    if payload.status != order.status:
-        allowed_next = ORDER_TRANSITIONS.get(order.status, set())
-        if payload.status not in allowed_next:
-            allowed_str = ", ".join(s.value for s in allowed_next) or "none (terminal state)"
-            raise HTTPException(
-                status_code=400,
-                detail=f"Cannot go from '{order.status.value}' to '{payload.status.value}'. "
-                       f"Allowed next: {allowed_str}",
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found",
+        )
+
+    if payload.status == order.status:
+        return order
+
+    allowed_next = ORDER_TRANSITIONS.get(order.status, set())
+
+    if payload.status not in allowed_next:
+        allowed_str = (
+            ", ".join(s.value for s in allowed_next)
+            or "none (terminal state)"
+        )
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Cannot go from '{order.status.value}' "
+                f"to '{payload.status.value}'. "
+                f"Allowed next: {allowed_str}"
+            ),
+        )
+
+    # Cancellation releases reserved inventory.
+    if payload.status == OrderStatus.CANCELLED:
+        for item in order.items:
+            product = (
+                db.query(Product)
+                .filter(Product.slug == item.product_slug)
+                .first()
             )
 
+            if not product:
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        f"Cannot restore inventory for order item "
+                        f"{item.id}: product not found"
+                    ),
+                )
+
+            variant = None
+
+            if item.variant_id is not None:
+                variant = (
+                    db.query(Variant)
+                    .filter(Variant.id == item.variant_id)
+                    .first()
+                )
+
+                if not variant:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            f"Cannot restore inventory for order item "
+                            f"{item.id}: variant not found"
+                        ),
+                    )
+
+            restore_stock(
+                product=product,
+                quantity=item.quantity,
+                db=db,
+                variant=variant,
+            )
+
+        order.reserved_until = None
+    if payload.status == OrderStatus.DELIVERED:
+        order.delivered_at = datetime.utcnow()
     order.status = payload.status
+
     db.commit()
     db.refresh(order)
+
+    if payload.status == OrderStatus.SHIPPED:   # NEW
+        recipient = order.user.email if order.user else order.guest_email
+        if recipient:
+            subject, html = build_shipping_notification_email(order)
+            send_email(recipient, subject, html)
+
     return order
 
 @router.get("/shipping-rates", response_model=List[ShippingRateResponse])
@@ -531,6 +618,7 @@ def update_variant(
 
     db.commit()
     db.refresh(variant)
+    notify_stock_subscribers(product, db)
 
     return variant
 
@@ -566,3 +654,17 @@ def delete_variant(variant_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return None
+
+@router.patch("/orders/{order_id}/tracking", response_model=OrderResponse)
+def update_tracking(order_id: int, payload: TrackingUpdate, db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if payload.tracking_number is not None:
+        order.tracking_number = payload.tracking_number
+    if payload.tracking_url is not None:
+        order.tracking_url = payload.tracking_url
+    db.commit()
+    db.refresh(order)
+    return order
+

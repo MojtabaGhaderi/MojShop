@@ -10,6 +10,8 @@ from app.models import Order, OrderStatus, Payment, PaymentStatus, User
 from app.schemas import PaymentCreateRequest, PaymentCreateResponse, PaymentVerifyRequest, PaymentVerifyResponse
 from app.services import zarinpal_service
 from app.crud import release_expired_reservations
+from app.services.email_service import send_email, build_order_confirmation_email
+
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -86,5 +88,9 @@ async def verify_payment(payload: PaymentVerifyRequest, db: Session = Depends(ge
     payment.verified_at = datetime.datetime.utcnow()
     order.status = OrderStatus.PAID
     db.commit()
+    recipient = order.user.email if order.user else order.guest_email
+    if recipient:
+        subject, html = build_order_confirmation_email(order)
+        send_email(recipient, subject, html)
 
     return PaymentVerifyResponse(status="success", ref_id=payment.ref_id, order_status=order.status)

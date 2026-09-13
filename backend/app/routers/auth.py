@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app import schemas, models
 from app.database import get_db
@@ -12,6 +12,13 @@ from app.services.auth import (
     create_access_token,
 )
 from app.services import token_service
+
+import secrets
+import hashlib
+
+from app.config import settings
+from app.services.email_service import send_email
+
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -42,6 +49,25 @@ def _issue_tokens(
     return schemas.Token(access_token=access, refresh_token=refresh_raw, token_type="bearer")
 
 
+
+
+def _hash_verify_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+def _send_verification_email(user: models.User, db: Session):
+    raw_token = secrets.token_urlsafe(32)
+    record = models.EmailVerificationToken(
+        user_id=user.id, token_hash=_hash_verify_token(raw_token),
+        expires_at=datetime.utcnow() + timedelta(hours=24),
+    )
+    db.add(record)
+    db.commit()
+    verify_url = f"{settings.FRONTEND_URL}/verify-email?token={raw_token}"
+    subject = "تایید ایمیل — موج گالری"
+    html = f"<p>برای تایید ایمیل خود کلیک کنید:</p><p><a href='{verify_url}'>تایید ایمیل</a></p>"
+    send_email(user.email, subject, html)
+
+
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
 def register(
     user_in: schemas.UserCreate,
@@ -61,7 +87,22 @@ def register(
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    _send_verification_email(db_user, db)
     return _issue_tokens(db, db_user, request)
+
+@router.post("/verify-email", status_code=status.HTTP_200_OK)
+def verify_email(payload: schemas.VerifyEmailRequest, db: Session = Depends(get_db)):
+    record = db.query(models.EmailVerificationToken).filter(
+        models.EmailVerificationToken.token_hash == _hash_verify_token(payload.token)
+    ).first()
+    if not record or record.used_at is not None or record.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="لینک تایید نامعتبر یا منقضی شده است")
+
+    user = db.query(models.User).filter(models.User.id == record.user_id).first()
+    user.is_verified = True
+    record.used_at = datetime.utcnow()
+    db.commit()
+    return {"message": "ایمیل شما با موفقیت تایید شد"}
 
 
 @router.post("/login", response_model=schemas.Token)
@@ -129,3 +170,56 @@ def logout(
 @router.get("/me", response_model=schemas.UserResponse)
 def me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+
+def _hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+    from app.services.email_service import send_email, build_password_reset_email
+    from app.config import settings
+
+    user = db.query(models.User).filter(models.User.email == payload.email).first()
+    # Same response whether or not the email exists — confirming/denying
+    # registered emails here is a user-enumeration leak, not just a nicety.
+    if user:
+        raw_token = secrets.token_urlsafe(32)
+        reset = models.PasswordResetToken(
+            user_id=user.id,
+            token_hash=_hash_reset_token(raw_token),
+            expires_at=datetime.utcnow() + timedelta(hours=1),
+        )
+        db.add(reset)
+        db.commit()
+
+        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={raw_token}"
+        subject, html = build_password_reset_email(reset_url)
+        send_email(user.email, subject, html)
+
+    return {"message": "اگر این ایمیل در سامانه ثبت شده باشد، لینک بازیابی رمز عبور ارسال شد"}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+def reset_password(payload: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    reset = db.query(models.PasswordResetToken).filter(
+        models.PasswordResetToken.token_hash == _hash_reset_token(payload.token)
+    ).first()
+
+    if not reset or reset.used_at is not None or reset.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="لینک بازیابی نامعتبر یا منقضی شده است")
+
+    user = db.query(models.User).filter(models.User.id == reset.user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="کاربر یافت نشد")
+
+    user.hashed_password = get_password_hash(payload.new_password)
+    reset.used_at = datetime.utcnow()
+    db.commit()
+
+    # A password reset is exactly the moment any stolen refresh tokens should
+    # die too — not just a courtesy, closes a real session-hijack window.
+    token_service.revoke_all_user_refresh_tokens(db, user.id)
+
+    return {"message": "رمز عبور با موفقیت تغییر کرد"}

@@ -8,6 +8,13 @@ import jwt
 
 from app.config import settings
 
+from app.services.email_service import send_email
+from app import models
+from sqlalchemy.orm import Session
+
+from sqlalchemy.orm import Session
+
+
 
 # ---------- password ----------
 

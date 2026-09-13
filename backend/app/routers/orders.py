@@ -1,3 +1,4 @@
+#orders.py
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
@@ -8,6 +9,7 @@ from app.dependencies import get_current_user
 from app.services.invoice_service import generate_invoice_pdf
 from app.models import InvoiceStatus
 from app.crud import get_order_by_id
+from app import crud
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -18,8 +20,6 @@ async def create_order(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    from app import crud
-
     address = crud.get_address_by_id(db, order.address_id, current_user.id)
     if not address:
         raise HTTPException(status_code=404, detail="Address not found")
@@ -38,7 +38,6 @@ async def create_order(
 
 @router.post("/guest", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED)
 async def create_guest_order_endpoint(payload: schemas.GuestOrderCreate, db: Session = Depends(get_db)):
-    from app import crud
     try:
         db_order = await crud.create_guest_order(
             db,
@@ -59,7 +58,6 @@ def get_guest_order_endpoint(
     email: str = Query(..., description="The guest_email used at checkout"),
     db: Session = Depends(get_db),
 ):
-    from app import crud
     order = crud.get_guest_order(db, order_id, email)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -70,7 +68,6 @@ def get_orders(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    from app import crud
     return crud.get_orders_by_user(db, current_user.id)
 
 
@@ -80,12 +77,26 @@ def get_order(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    from app import crud
     order = get_order_by_id(db, order_id, current_user.id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
 
+
+@router.post(
+    "/{order_id}/cancel",
+    response_model=schemas.OrderResponse,
+)
+def cancel_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return crud.cancel_order(
+        db=db,
+        order_id=order_id,
+        user_id=current_user.id,
+    )
 
 @router.get("/{order_id}/invoice")
 def get_invoice(order_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
