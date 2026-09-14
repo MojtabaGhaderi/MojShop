@@ -44,7 +44,7 @@ def list_active_promos(db: Session = Depends(get_db)):
     promos = (
         db.query(PromoCode)
         .filter(PromoCode.is_active == True)
-        .filter((PromoCode.expires_at == None) | (models.PromoCode.expires_at > now))
+        .filter((PromoCode.expires_at == None) | (PromoCode.expires_at > now))
         .all()
     )
     return [p for p in promos if p.usage_limit is None or p.used_count < p.usage_limit]

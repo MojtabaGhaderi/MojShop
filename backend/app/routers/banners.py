@@ -8,7 +8,7 @@ router = APIRouter(prefix="/banners", tags=["banners"])
 
 
 @router.get("/", response_model=list[schemas.BannerResponse])
-def list_banners(placement: str | None = None, db: Session = Depends(get_db)):
+def list_banners(placement: models.BannerPlacement | None = None, db: Session = Depends(get_db)):
     query = db.query(models.Banner).filter(models.Banner.is_active == True)
     if placement:
         query = query.filter(models.Banner.placement == placement)

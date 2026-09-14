@@ -1,3 +1,4 @@
+//dashboard/categories/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -22,7 +23,7 @@ function CategoryForm({
     category, onSubmit, isSaving,
 }: {
     category: Category | null;
-    onSubmit: (data: { name: string; slug: string; description?: string; is_active?: boolean }) => void;
+    onSubmit: (data: { name: string; slug: string; description?: string; is_active?: boolean; image_url?: string }) => void;
     isSaving: boolean;
 }) {
     const [name, setName] = useState(category?.name ?? '');
@@ -30,6 +31,7 @@ function CategoryForm({
     const [slugTouched, setSlugTouched] = useState(!!category);
     const [description, setDescription] = useState(category?.description ?? '');
     const [isActive, setIsActive] = useState(category?.is_active ?? true);
+    const [imageUrl, setImageUrl] = useState(category?.image_url ?? '');
 
     function handleNameChange(v: string) {
         setName(v);
@@ -38,7 +40,7 @@ function CategoryForm({
 
     return (
         <form
-            onSubmit={(e) => { e.preventDefault(); onSubmit({ name, slug, description: description || undefined, is_active: isActive }); }}
+            onSubmit={(e) => { e.preventDefault(); onSubmit({ name, slug, description: description || undefined, is_active: isActive, image_url: imageUrl || undefined }); }}
             className="space-y-4"
         >
             <div className="space-y-2">
@@ -53,6 +55,7 @@ function CategoryForm({
                 <Label htmlFor="cat-desc">توضیحات</Label>
                 <Textarea id="cat-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
+            <div className="space-y-2"><Label>آدرس تصویر</Label><Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} /></div>
             {category && (
                 <div className="flex items-center justify-between rounded-md border p-3">
                     <Label htmlFor="cat-active">فعال</Label>
