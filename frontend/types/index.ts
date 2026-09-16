@@ -427,3 +427,44 @@ export interface Banner {
   is_active: boolean;
   sort_order: number;
 }
+
+export interface HomeSectionFeedItem {
+  id: number;
+  title: string;
+  subtitle?: string;
+  view_all_href: string;
+  products: ProductListItem[];
+}
+
+export interface FooterLinkItem {
+  id: number;
+  label: string;
+  href: string;
+  sort_order: number;
+  is_external: boolean;
+}
+
+export interface FooterSectionItem {
+  id: number;
+  title: string;
+  sort_order: number;
+  links: FooterLinkItem[];
+}
+
+export interface SiteInfoData {
+  site_title: string;
+  tagline?: string;
+  bio?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  instagram?: string;
+  address?: string;
+  copyright_text?: string;
+  enamad_html?: string;
+}
+
+export interface FooterConfig {
+  info: SiteInfoData;
+  sections: FooterSectionItem[];
+}

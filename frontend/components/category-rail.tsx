@@ -19,7 +19,7 @@ export default function CategoryRail({
             aria-label="دسته‌بندی محصولات"
             className="overflow-hidden"
         >
-            <div className="flex gap-3 overflow-x-auto px-5 pb-2 scrollbar-none sm:px-8 lg:px-10">
+            <div className="flex items-center gap-3 overflow-x-auto px-5 pb-2 scrollbar-none sm:px-8 lg:px-10">
                 {categories.map((category) => (
                     <Link
                         key={category.id}
@@ -43,11 +43,11 @@ export default function CategoryRail({
 
                             <div
                                 className="
-        absolute inset-x-0 bottom-0
-        flex h-8 items-center justify-center
-        bg-[#173B57]/10
-        backdrop-blur
-      "
+                                    absolute inset-x-0 bottom-0
+                                    flex h-8 items-center justify-center
+                                    bg-[#173B57]/10
+                                    backdrop-blur
+                                "
                             >
                                 <span className="text-sm font-medium text-white">
                                     {category.name}
@@ -56,21 +56,19 @@ export default function CategoryRail({
                         </div>
                     </Link>
                 ))}
+
                 <Link
                     href="/categories"
-                    className="
-    flex w-[140px] shrink-0 items-center justify-center
-    rounded-xl border border-[#D8D5CE]
-    bg-[#F7F6F2]
-    text-primary
-    transition-colors duration-300
-    hover:bg-white
-    sm:w-[170px]
-  "
+                    className="group flex min-w-[140px] shrink-0 items-center justify-center sm:min-w-[180px]"
+                    aria-label="مشاهده همه دسته‌بندی‌ها"
                 >
-                    <span className="text-sm font-medium">
-                        مشاهده همه
-                    </span>
+                    <Image
+                        src="/signature-arrow.png"
+                        alt="مشاهده همه"
+                        width={320}
+                        height={90}
+                        className="!h-10 !w-auto max-w-none transition-transform duration-500 ease-out group-hover:-translate-x-3 sm:!h-20"
+                    />
                 </Link>
             </div>
         </section>

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import datetime
 
-from app.models import MetalType, OrderStatus, InvoiceStatus, PromoType, BannerPlacement
+from app.models import MetalType, OrderStatus, InvoiceStatus, PromoType, BannerPlacement, HomeSectionType
 
 
 # --- Category schemas ---
@@ -459,6 +459,7 @@ class PromoCodeResponse(BaseModel):
     usage_limit: Optional[int] = None
     used_count: int
     is_active: bool
+    is_featured: bool
     created_at: datetime
 
     class Config:
@@ -562,3 +563,129 @@ class BannerResponse(BaseModel):
     sort_order: int
     class Config:
         from_attributes = True
+
+# --- HomeSection Schemas ---
+class HomeSectionCreate(BaseModel):
+    title: str = Field(..., max_length=150)
+    subtitle: Optional[str] = Field(None, max_length=150)
+    section_type: HomeSectionType = HomeSectionType.NEWEST
+    filter_value: Optional[str] = Field(None, max_length=100)
+    view_all_href: str = Field("/products", max_length=255)
+    display_limit: int = Field(8, ge=1, le=24)
+    sort_order: int = 0
+    is_active: bool = True
+
+class HomeSectionUpdate(BaseModel):
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    section_type: Optional[HomeSectionType] = None
+    filter_value: Optional[str] = None
+    view_all_href: Optional[str] = None
+    display_limit: Optional[int] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+class HomeSectionResponse(BaseModel):
+    id: int
+    title: str
+    subtitle: Optional[str]
+    section_type: HomeSectionType
+    filter_value: Optional[str]
+    view_all_href: str
+    display_limit: int
+    sort_order: int
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class HomeSectionFeedItem(BaseModel):
+    id: int
+    title: str
+    subtitle: Optional[str] = None
+    view_all_href: str
+    products: List[ProductResponse] = []
+
+    class Config:
+        from_attributes = True
+
+# --- Trust Badge Schemas ---
+class TrustBadgeBase(BaseModel):
+    title: str = Field(..., max_length=100)
+    description: str = Field(..., max_length=255)
+    icon_key: str = Field("dot", max_length=50)
+    sort_order: int = 0
+    is_active: bool = True
+
+class TrustBadgeCreate(TrustBadgeBase):
+    pass
+
+class TrustBadgeUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    icon_key: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+class TrustBadgeResponse(TrustBadgeBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- Footer & Site Info Schemas ---
+class FooterLinkSchema(BaseModel):
+    id: int
+    label: str
+    href: str
+    sort_order: int
+    is_external: bool
+
+    class Config:
+        from_attributes = True
+
+
+class FooterSectionResponse(BaseModel):
+    id: int
+    title: str
+    sort_order: int
+    links: List[FooterLinkSchema] = []
+
+    class Config:
+        from_attributes = True
+
+
+class SiteInfoResponse(BaseModel):
+    site_title: str
+    tagline: Optional[str] = None
+    bio: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    email: Optional[str] = None
+    instagram: Optional[str] = None
+    address: Optional[str] = None
+    copyright_text: Optional[str] = None
+    enamad_html: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SiteInfoUpdate(BaseModel):
+    site_title: Optional[str] = None
+    tagline: Optional[str] = None
+    bio: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    email: Optional[str] = None
+    instagram: Optional[str] = None
+    address: Optional[str] = None
+    copyright_text: Optional[str] = None
+    enamad_html: Optional[str] = None
+
+
+class FooterConfigPayload(BaseModel):
+    info: SiteInfoResponse
+    sections: List[FooterSectionResponse]

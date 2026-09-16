@@ -48,3 +48,10 @@ def list_active_promos(db: Session = Depends(get_db)):
         .all()
     )
     return [p for p in promos if p.usage_limit is None or p.used_count < p.usage_limit]
+
+@router.get("/featured", response_model=list[PromoCodeResponse])
+def get_featured_promos(db: Session = Depends(get_db)):
+    return db.query(PromoCode).filter(
+        PromoCode.is_active == True,
+        PromoCode.is_featured == True
+    ).all()

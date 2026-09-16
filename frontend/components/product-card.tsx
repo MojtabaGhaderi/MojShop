@@ -20,7 +20,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     ? (rawImage.startsWith('http://') || rawImage.startsWith('https://') ? rawImage : `${BACKEND_URL}${rawImage}`)
     : null;
   const isOutOfStock = product.stock_quantity === 0;
-  const hasVariants = product.variants.length > 0;
+  const hasVariants = Boolean(product.variants?.length);
 
   const { isAuthenticated } = useAuth();
   const wishlist = useWishlist();
@@ -48,8 +48,9 @@ export default function ProductCard({ product }: ProductCardProps) {
   }
 
   return (
-    <Link href={`/products/${product.slug}`} className="group block overflow-hidden rounded-md bg-surface-elevated">
-      <div className="relative aspect-[3/4] overflow-hidden bg-surface-sunken">
+    <Link href={`/products/${product.slug}`} className="group block">
+      {/* Immersive Image Container - Strict 4/5 aspect ratio, zero padding cards */}
+      <div className="relative aspect-[4/5] w-full overflow-hidden bg-secondary">
         {primaryImage ? (
           <Image
             src={primaryImage}
@@ -57,72 +58,69 @@ export default function ProductCard({ product }: ProductCardProps) {
             width={IMAGE_DIMENSIONS.thumb.width}
             height={IMAGE_DIMENSIONS.thumb.height}
             unoptimized
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary-subtle">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15l-5-5L5 21" />
-            </svg>
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground/30">
+            —
           </div>
         )}
 
+        {/* Wishlist Button - Absolute minimalist placement */}
         {isAuthenticated && (
           <button
             type="button"
             onClick={handleWishlistClick}
-            className="absolute end-2 top-2 flex h-7 w-7 items-center justify-center text-primary/70 transition-colors hover:text-primary"
+            className="absolute end-3 top-3 flex h-8 w-8 items-center justify-center text-foreground/75 transition-colors hover:text-foreground"
             aria-label={inWishlist ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={inWishlist ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" className={inWishlist ? 'text-error' : ''}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={inWishlist ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" className={inWishlist ? 'text-destructive' : ''}>
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
         )}
 
+        {/* Out of Stock Overlay */}
         {isOutOfStock && (
-          <div className="absolute inset-0 flex items-center justify-center bg-primary/40">
-            <span className="rounded bg-surface px-3 py-1 text-xs font-medium text-primary">ناموجود</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-foreground/40 backdrop-blur-[2px]">
+            <span className="rounded-none bg-background px-3 py-1 text-xs font-medium tracking-widest text-foreground">ناموجود</span>
           </div>
         )}
       </div>
 
-      <div className="p-3">
-        <h3 className="text-sm leading-snug text-primary line-clamp-2">{product.name}</h3>
-        {product.category && <p className="mt-1 text-xs text-primary-subtle">{product.category.name}</p>}
-
-        {product.review_count > 0 && (
-          <div className="mt-1 flex items-center gap-1 text-xs text-primary-subtle">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="text-accent">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
-            </svg>
-            <span>{product.average_rating.toFixed(1)} ({product.review_count})</span>
-          </div>
+      {/* Typography block sitting cleanly on the canvas below the image */}
+      <div className="mt-4 flex flex-col gap-1">
+        {product.category && (
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            {product.category.name}
+          </span>
         )}
 
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="text-sm font-medium text-accent">{formatPriceWithCurrency(product.current_price)}</p>
+        <h3 className="text-sm font-light leading-snug text-foreground line-clamp-1 transition-colors group-hover:text-accent">
+          {product.name}
+        </h3>
+
+        <div className="mt-1 flex items-center justify-between">
+          <p className="text-sm font-medium tracking-tight text-foreground">
+            {formatPriceWithCurrency(product.current_price)}
+          </p>
+
+          {/* Minimal Quick Action */}
           {!isOutOfStock && (
             hasVariants ? (
-              <span className="text-xs text-primary-muted">مشاهده</span>
+              <span className="text-xs text-muted-foreground transition-colors group-hover:text-accent">مشاهده</span>
             ) : (
               <button
                 type="button"
                 onClick={handleQuickAdd}
                 disabled={cart.isAdding}
-                className="rounded bg-primary px-2.5 py-1 text-xs text-surface transition-colors hover:bg-primary/90 disabled:opacity-50"
+                className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-accent hover:underline disabled:opacity-50"
               >
-                افزودن
+                افزودن سریع
               </button>
             )
           )}
         </div>
-
-        {product.materials.length > 0 && (
-          <p className="mt-1 text-xs text-primary-subtle">{product.materials.map((m) => m.display_name).join(' و ')}</p>
-        )}
       </div>
     </Link>
   );

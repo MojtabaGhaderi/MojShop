@@ -1,4 +1,3 @@
-//components/product-grid.tsx
 import ProductCard from './product-card';
 import ProductCardSkeleton from './skeletons/product-card-skeleton';
 import type { ProductListItem } from '@/types';
@@ -16,8 +15,8 @@ export default function ProductGrid({
 }: ProductGridProps) {
   if (isServerFetched && products.length === 0) {
     return (
-      <div className="py-16 text-center">
-        <p className="text-sm text-primary-muted">
+      <div className="py-24 text-center">
+        <p className="text-sm text-muted-foreground">
           در حال حاضر محصولی برای نمایش وجود ندارد.
         </p>
       </div>
@@ -25,7 +24,7 @@ export default function ProductGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 sm:gap-y-14 md:grid-cols-3 lg:grid-cols-4">
       {isLoading
         ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
         : products.map((product) => (

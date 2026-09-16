@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useCallback } from 'react';
 import { NAV_LINKS, SITE_NAME } from '@/lib/constants';
 import { useCartDrawer } from '@/context/cart-drawer-context';
@@ -45,28 +46,38 @@ export default function MobileNav({
 
   return (
     <div className="fixed inset-0 z-50">
-      {/* Overlay */}
+      {/* Overlay with luxury blur */}
       <div
-        className="fade-in absolute inset-0 bg-primary/40"
+        className="fade-in absolute inset-0 bg-foreground/40 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
       <nav
-        className="slide-in-start relative z-10 flex h-full w-72 flex-col bg-surface shadow-lg"
+        className="slide-in-start relative z-10 flex h-full w-72 flex-col bg-background shadow-2xl"
         aria-label="منوی موبایل"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border-default px-4 py-4">
-          <span className="text-lg font-bold text-primary">{SITE_NAME}</span>
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          {/* Logo Placement for Mobile Drawer */}
+          <Link href="/" onClick={onClose}>
+            <Image
+              src="/logo.png"
+              alt={SITE_NAME}
+              width={120}
+              height={40}
+              className="h-8 w-auto sm:h-10 mix-blend-multiply" /* <-- This is the fix */
+              priority
+            />
+          </Link>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-primary transition-colors hover:bg-surface-sunken"
+            className="flex h-10 w-10 items-center justify-center rounded-sm text-foreground transition-colors hover:bg-secondary"
             aria-label="بستن منو"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -74,51 +85,29 @@ export default function MobileNav({
         </div>
 
         {/* User section */}
-        <div className="border-b border-border-default px-4 py-3">
+        <div className="border-b border-border px-5 py-4">
           {isAuthenticated && user ? (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-primary">{user.full_name || user.email}</p>
-              <div className="flex gap-3">
-                <Link
-                  href="/profile"
-                  onClick={onClose}
-                  className="text-xs text-accent hover:underline"
-                >
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">{user.full_name || user.email}</p>
+              <div className="flex gap-4">
+                <Link href="/profile" onClick={onClose} className="text-xs text-muted-foreground transition-colors hover:text-accent">
                   پروفایل
                 </Link>
-                <Link
-                  href="/orders"
-                  onClick={onClose}
-                  className="text-xs text-accent hover:underline"
-                >
+                <Link href="/orders" onClick={onClose} className="text-xs text-muted-foreground transition-colors hover:text-accent">
                   سفارشات
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    logout();
-                    onClose();
-                  }}
-                  className="text-xs text-red-500 hover:underline"
-                >
+                <button type="button" onClick={() => { logout(); onClose(); }} className="text-xs text-destructive transition-colors hover:opacity-80">
                   خروج
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex gap-3">
-              <Link
-                href="/login"
-                onClick={onClose}
-                className="text-sm font-medium text-accent hover:underline"
-              >
+            <div className="flex items-center gap-3">
+              <Link href="/login" onClick={onClose} className="text-sm font-medium text-foreground transition-colors hover:text-accent">
                 ورود
               </Link>
-              <Link
-                href="/register"
-                onClick={onClose}
-                className="text-sm font-medium text-accent hover:underline"
-              >
+              <span className="h-3 w-px bg-border" aria-hidden="true" />
+              <Link href="/register" onClick={onClose} className="text-sm font-medium text-foreground transition-colors hover:text-accent">
                 ثبت‌نام
               </Link>
             </div>
@@ -132,7 +121,7 @@ export default function MobileNav({
               <Link
                 href={link.href}
                 onClick={onClose}
-                className="block px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-surface-sunken hover:text-accent"
+                className="block px-5 py-3 text-sm text-foreground transition-colors hover:bg-secondary hover:text-accent"
               >
                 {link.label}
               </Link>
@@ -142,7 +131,7 @@ export default function MobileNav({
             <button
               type="button"
               onClick={() => { onClose(); openCart(); }}
-              className="block w-full px-4 py-3 text-start text-sm font-medium text-primary transition-colors hover:bg-surface-sunken hover:text-accent"
+              className="block w-full px-5 py-3 text-right text-sm text-foreground transition-colors hover:bg-secondary hover:text-accent"
             >
               سبد خرید
             </button>

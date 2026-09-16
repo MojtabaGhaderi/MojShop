@@ -26,9 +26,27 @@ export function getProductImageUrl(
   return `/uploads/products/${product_id}/${base}-${size}.jpg`;
 }
 
-export function getPrimaryImage(images: { is_primary: boolean; url: string }[]): string | null {
-  const primary = images.find((img) => img.is_primary);
-  return primary ? primary.url : (images[0]?.url ?? null);
+export function getPrimaryImage(
+  images: Array<{ url: string; is_primary?: boolean }> = []
+): string | null {
+  if (!images || images.length === 0) return null;
+
+  // Helper to identify dummy/placeholder URLs
+  const isPlaceholder = (url: string) =>
+    url.includes('unsplash.com') ||
+    url.includes('placeholder') ||
+    url.includes('picsum.photos');
+
+  // 1. Separate real uploaded assets from dummy placeholder links
+  const realImages = images.filter((img) => !isPlaceholder(img.url));
+  const candidatePool = realImages.length > 0 ? realImages : images;
+
+  // 2. Respect the primary image chosen by the admin within the prioritized pool
+  const primary = candidatePool.find((img) => img.is_primary);
+  if (primary?.url) return primary.url;
+
+  // 3. Fallback to the first image in the candidate pool
+  return candidatePool[0]?.url || null;
 }
 
 export function debounce<T extends (...args: unknown[]) => unknown>(

@@ -1,116 +1,130 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
-import ProductGrid from '@/components/product-grid';
 import { serverFetch } from '@/lib/api';
-import type { ProductListItem, Category, Banner, PromoCode } from '@/types';
+import type { Category, Banner, PromoCode, HomeSectionFeedItem } from '@/types';
 import { SITE_NAME } from '@/lib/constants';
-import HeroCarousel from "@/components/hero-carousel";
-import CategoryRail from "@/components/category-rail";
+
+import HeroCarousel from '@/components/hero-carousel';
+import CategoryRail from '@/components/category-rail';
+import ProductRail from '@/components/product-rail';
+import EditorialPromo from '@/components/editorial-promo';
+import TrustPillars, { type TrustBadgeItem } from '@/components/trust-pillars';
 
 export const metadata: Metadata = {
-  title: `${SITE_NAME} — فروشگاه آنلاین جواهرات و اکسسوری`,
-  description: 'مجموعه‌ای از زیورآلات طلا، نقره و بدلیجات با ضمانت اصالت. قیمت روز و ارسال سریع به سراسر ایران.',
+  title: `${SITE_NAME} — گالری زیورآلات نقره`,
+  description: 'مجموعه‌ای از زیورآلات نقره دست‌ساز با تضمین اصالت و ارسال به سراسر ایران.',
 };
 
 export default async function HomePage() {
   const results = await Promise.allSettled([
-    serverFetch<{ items: ProductListItem[] }>('/products/?limit=8'),
-    serverFetch<{ items: ProductListItem[] }>('/products/?metal=silver&limit=8'),
+    serverFetch<HomeSectionFeedItem[]>('/home-sections/feed'),
     serverFetch<Category[]>('/categories/'),
     serverFetch<Banner[]>('/banners/?placement=hero'),
     serverFetch<Banner[]>('/banners/?placement=feature'),
-    serverFetch<PromoCode[]>('/promos/active'),
+    serverFetch<PromoCode[]>('/promos/featured'),
+    serverFetch<TrustBadgeItem[]>('/trust-badges/'),
   ]);
 
   function fulfilled<T>(r: PromiseSettledResult<T>, fallback: T): T {
     return r.status === 'fulfilled' ? r.value : fallback;
   }
 
-  const featuredProducts = fulfilled(results[0], { items: [] as ProductListItem[] }).items ?? [];
-  const silverProducts = fulfilled(results[1], { items: [] as ProductListItem[] }).items ?? [];
-  const categories = fulfilled(results[2], [] as Category[]);
-  const heroBanners = fulfilled(results[3], [] as Banner[]);
-  const featureBanners = fulfilled(results[4], [] as Banner[]);
-  const activePromos = fulfilled(results[5], [] as PromoCode[]);
+  const homeRails = fulfilled(results[0], [] as HomeSectionFeedItem[]);
+  const categories = fulfilled(results[1], [] as Category[]);
+  const heroBanners = fulfilled(results[2], [] as Banner[]);
+  const featureBanners = fulfilled(results[3], [] as Banner[]);
+  const featuredPromos = fulfilled(results[4], [] as PromoCode[]);
+  const trustBadges = fulfilled(results[5], [] as TrustBadgeItem[]);
 
   const featureBanner = featureBanners[0];
 
   return (
-    <div>
+    <div className="flex flex-col gap-0">
+      {/* 1. Hero Carousel */}
       <HeroCarousel banners={heroBanners} />
 
-      <section className="bg-[#F0EFEA] py-10 sm:py-14">
+      {/* 2. Category Navigation Rail */}
+      <section className="bg-secondary/40 py-10 sm:py-14">
         <CategoryRail categories={categories} />
       </section>
 
-      {/* Newest products */}
-      <section className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-medium text-primary sm:text-xl">جدیدترین محصولات</h2>
-          <Link href="/products" className="text-sm text-accent transition-colors hover:text-accent-hover">مشاهده همه ←</Link>
+      {/* 3. Dynamic Curated Rails (Admin Controlled) */}
+      {homeRails.map((rail, index) => (
+        <div
+          key={rail.id}
+          className={index % 2 === 1 ? 'border-t border-border/40 bg-background' : ''}
+        >
+          <ProductRail
+            title={rail.title}
+            subtitle={rail.subtitle}
+            products={rail.products}
+            viewAllHref={rail.view_all_href}
+          />
         </div>
-        <ProductGrid products={featuredProducts} isLoading={false} isServerFetched />
-      </section>
+      ))}
 
-      {/* Silver collection */}
-      {silverProducts.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-lg font-medium text-primary sm:text-xl">مجموعه نقره</h2>
-            <Link href="/products?metal=silver" className="text-sm text-accent transition-colors hover:text-accent-hover">مشاهده همه ←</Link>
-          </div>
-          <ProductGrid products={silverProducts} isLoading={false} isServerFetched />
-        </section>
-      )}
+      {/* 4. Editorial Promo Section (Renders only if is_featured promo exists) */}
+      <EditorialPromo promos={featuredPromos} />
 
-      {/* Active promo codes */}
-      {activePromos.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-          <div className="rounded-md border border-accent/30 bg-accent-subtle px-6 py-8 text-center">
-            <h2 className="text-lg font-medium text-primary">تخفیف ویژه</h2>
-            {activePromos.map((promo) => (
-              <p key={promo.id} className="mt-2 text-sm text-primary-muted">
-                با کد <span className="font-mono font-semibold text-accent">{promo.code}</span>{' '}
-                {promo.type === 'percent' ? `${promo.amount}٪ تخفیف بگیرید` : `${promo.amount.toLocaleString('fa-IR')} تومان تخفیف بگیرید`}
-              </p>
-            ))}
-            <Link href="/products" className="mt-4 inline-flex h-10 items-center justify-center rounded-md bg-accent px-5 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover">شروع خرید</Link>
-          </div>
-        </section>
-      )}
-
-      {/* Feature banner above footer */}
+      {/* 5. Feature Banner - Architectural Full-Bleed Story */}
       {featureBanner && (
-        <section className="relative h-64 w-full overflow-hidden sm:h-80">
-          <img src={featureBanner.image_url} alt={featureBanner.title ?? ''} className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-primary/40" />
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
-            {featureBanner.title && <h2 className="text-xl font-medium text-surface sm:text-2xl">{featureBanner.title}</h2>}
-            {featureBanner.subtitle && <p className="mt-2 max-w-md text-sm text-surface/80">{featureBanner.subtitle}</p>}
-            {featureBanner.link_url && (
-              <Link href={featureBanner.link_url} className="mt-5 inline-flex h-10 items-center justify-center rounded-md bg-accent px-5 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover">مشاهده</Link>
-            )}
+        <section className="relative w-full overflow-hidden bg-background">
+          <div className="relative aspect-[4/5] min-h-[460px] w-full sm:aspect-[21/9] sm:min-h-[520px]">
+            <Image
+              src={featureBanner.image_url}
+              alt={featureBanner.title ?? 'مجموعه ویژه'}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-center"
+            />
+
+            {/* Editorial Atmosphere Scrim */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10 sm:bg-gradient-to-r sm:from-black/70 sm:via-black/35 sm:to-transparent" />
+
+            {/* Content Overlay */}
+            <div className="absolute inset-0 flex items-end sm:items-center">
+              <div className="mx-auto w-full max-w-[1440px] px-6 pb-12 sm:px-8 sm:pb-0 lg:px-12">
+                <div className="max-w-xl text-right">
+                  <span className="font-mono text-xs uppercase tracking-widest text-white/70">
+                    روایت نقره
+                  </span>
+
+                  {featureBanner.title && (
+                    <h2 className="mt-3 text-2xl font-light leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
+                      {featureBanner.title}
+                    </h2>
+                  )}
+
+                  {featureBanner.subtitle && (
+                    <p className="mt-4 text-sm font-normal leading-relaxed text-white/80 sm:text-base">
+                      {featureBanner.subtitle}
+                    </p>
+                  )}
+
+                  {featureBanner.link_url && (
+                    <div className="mt-7 sm:mt-9">
+                      <Link
+                        href={featureBanner.link_url}
+                        className="group inline-flex h-12 items-center justify-center gap-3 border border-white/60 bg-white/10 px-8 text-xs font-medium uppercase tracking-widest text-white backdrop-blur-sm transition-all duration-300 hover:border-white hover:bg-white hover:text-black"
+                      >
+                        <span>مشاهده اثر</span>
+                        <span className="inline-block transition-transform duration-300 group-hover:-translate-x-1">
+                          ←
+                        </span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       )}
 
-      {/* Trust badges */}
-      <section className="border-y border-border-default bg-surface-elevated">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 sm:grid-cols-4 sm:px-6">
-          {[
-            { title: 'ضمانت اصالت', desc: 'عیار و اصالت هر قطعه تضمین شده است' },
-            { title: 'قیمت لحظه‌ای', desc: 'قیمت‌گذاری بر اساس نرخ روز فلزات' },
-            { title: 'ارسال سریع', desc: 'ارسال به سراسر ایران' },
-            { title: 'پرداخت امن', desc: 'پرداخت آنلاین از طریق درگاه معتبر' },
-          ].map((badge) => (
-            <div key={badge.title}>
-              <div className="h-px w-5 bg-accent" />
-              <h3 className="mt-3 text-sm font-medium text-primary">{badge.title}</h3>
-              <p className="mt-1 text-xs leading-relaxed text-primary-muted">{badge.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* 6. Trust Badges (Admin Controlled) */}
+      <TrustPillars badges={trustBadges} />
     </div>
   );
 }

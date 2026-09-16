@@ -294,6 +294,8 @@ class PromoCode(Base):
     usage_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
     used_count: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(default=True)
+    # Admin toggle: display this promo voucher on the homepage editorial section
+    is_featured: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
 
 class ShippingRate(Base):
@@ -402,3 +404,85 @@ class Banner(Base):
     is_active: Mapped[bool] = mapped_column(default=True)
     sort_order: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+
+
+class HomeSectionType(str, enum.Enum):
+    NEWEST = "newest"              # Dynamically pulls newest active products
+    SILVER = "silver"              # Products with metal_type == silver
+    CATEGORY = "category"          # Products from a specific category_id or slug
+    TAG = "tag"                    # Products matching a specific tag
+    MANUAL = "manual"              # Curated manually by admin
+
+
+class HomeSection(Base):
+    __tablename__ = "home_sections"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(150), nullable=False)       # e.g., "مجموعه نقره" or "جدیدترین محصولات"
+    subtitle: Mapped[str | None] = mapped_column(String(150), nullable=True) # e.g., "درخشش دست‌ساز"
+    section_type: Mapped[HomeSectionType] = mapped_column(
+        Enum(HomeSectionType), default=HomeSectionType.NEWEST, nullable=False
+    )
+    
+    # Optional filter targets depending on section_type
+    filter_value: Mapped[str | None] = mapped_column(String(100), nullable=True) # e.g., category slug, tag name, or query
+    view_all_href: Mapped[str] = mapped_column(String(255), default="/products") # Destination for "مشاهده همه" link
+    
+    display_limit: Mapped[int] = mapped_column(Integer, default=8)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+class TrustBadge(Base):
+    __tablename__ = "trust_badges"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Icon key matches a minimal SVG mapper on the frontend (e.g. "gem", "scale", "box", "shield", "dot")
+    icon_key: Mapped[str] = mapped_column(String(50), default="dot")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+
+class FooterSection(Base):
+    __tablename__ = "footer_sections"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g., "دسترسی سریع", "خدمات مشتریان"
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    
+    links: Mapped[list["FooterLink"]] = relationship(
+        back_populates="section", cascade="all, delete-orphan", order_by="FooterLink.sort_order"
+    )
+
+
+class FooterLink(Base):
+    __tablename__ = "footer_links"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    section_id: Mapped[int] = mapped_column(ForeignKey("footer_sections.id", ondelete="CASCADE"))
+    section: Mapped["FooterSection"] = relationship(back_populates="links")
+
+    label: Mapped[str] = mapped_column(String(100), nullable=False)
+    href: Mapped[str] = mapped_column(String(255), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_external: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class SiteInfo(Base):
+    __tablename__ = "site_info"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    site_title: Mapped[str] = mapped_column(String(100), default="موج")
+    tagline: Mapped[str] = mapped_column(String(255), nullable=True)
+    bio: Mapped[str] = mapped_column(Text, nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    whatsapp: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    instagram: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    copyright_text: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    enamad_html: Mapped[str | None] = mapped_column(Text, nullable=True)

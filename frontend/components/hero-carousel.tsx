@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
+import React, { useEffect, useState, useCallback } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 import type { Banner } from "@/types";
 
 interface HeroCarouselProps {
@@ -11,67 +12,66 @@ interface HeroCarouselProps {
 }
 
 export default function HeroCarousel({ banners }: HeroCarouselProps) {
+    // Configured for RTL physics, looping, and yielding to touch
+    const [emblaRef, emblaApi] = useEmblaCarousel(
+        { loop: true, direction: "rtl" },
+        [
+            Autoplay({
+                delay: 5500,
+                stopOnInteraction: false, // Resumes autoplay after user swipes
+                stopOnMouseEnter: true,   // Pauses when mouse is over the banner
+            })
+        ]
+    );
+
     const [activeIndex, setActiveIndex] = useState(0);
-    const [paused, setPaused] = useState(false);
+
+    const onSelect = useCallback(() => {
+        if (!emblaApi) return;
+        setActiveIndex(emblaApi.selectedScrollSnap());
+    }, [emblaApi]);
+
+    useEffect(() => {
+        if (!emblaApi) return;
+        onSelect();
+        emblaApi.on("select", onSelect);
+        emblaApi.on("reInit", onSelect);
+    }, [emblaApi, onSelect]);
+
+    if (!banners || banners.length === 0) return null;
 
     const hasMultiple = banners.length > 1;
 
-    useEffect(() => {
-        if (!hasMultiple || paused) {
-            return;
-        }
-
-        const interval = window.setInterval(() => {
-            setActiveIndex((current) => (current + 1) % banners.length);
-        }, 5500);
-
-        return () => window.clearInterval(interval);
-    }, [banners.length, hasMultiple, paused]);
-
-    if (banners.length === 0) {
-        return null;
-    }
-
     return (
         <section
-            className="relative overflow-hidden bg-surface"
+            className="relative w-full overflow-hidden bg-secondary"
             aria-label="بنرهای ویژه"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-            onFocus={() => setPaused(true)}
-            onBlur={() => setPaused(false)}
         >
-            <div className="relative h-[min(72vh,720px)] min-h-[460px]">
-                {banners.map((banner, index) => {
-                    const isActive = index === activeIndex;
-
-                    const slideContent = (
-                        <>
+            <div className="relative h-[min(72vh,720px)] min-h-[460px] w-full" ref={hasMultiple ? emblaRef : null}>
+                <div className="flex h-full touch-pan-y">
+                    {banners.map((banner, index) => (
+                        <div
+                            key={banner.id}
+                            className="relative h-full min-w-0 shrink-0 grow-0 basis-full"
+                        >
                             <Image
                                 src={banner.image_url}
-                                alt={banner.title || "موج"}
+                                alt={banner.title || "موج گالری"}
                                 fill
                                 priority={index === 0}
-                                className="object-cover"
+                                className="object-cover object-center"
                                 sizes="100vw"
                             />
-                            {/* Bottom atmospheric layer */}
+
+                            {/* Hard, Dark Horizon Gradient */}
                             <div
-                                className="
-    pointer-events-none
-    absolute inset-x-0 bottom-0
-    h-35
-    bg-[#173B57]/25
-    backdrop-blur
-    backdrop-saturate-125
-    [mask-image:linear-gradient(to_bottom,transparent_0%,black_55%,black_100%)]
-  "
+                                className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-[#0E1A24]/90 via-[#0E1A24]/40 to-transparent sm:h-64"
                                 aria-hidden="true"
                             />
 
-                            {/* Hero text */}
-                            <div className="absolute inset-x-0 bottom-0 h-48 sm:h-56">
-                                <div className="mx-auto flex h-full max-w-[1440px] items-end px-5 pb-10 sm:px-8 sm:pb-12 lg:px-10">
+                            {/* Text Payload - Reverted to White and Pushed Up (pb-20) */}
+                            <div className="absolute inset-x-0 bottom-0 h-56 sm:h-64">
+                                <div className="mx-auto flex h-full max-w-[1440px] items-end px-5 pb-20 sm:px-8 sm:pb-24 lg:px-10">
                                     <div className="max-w-xl">
                                         {banner.title && (
                                             <h1 className="text-2xl font-medium tracking-tight text-white sm:text-4xl lg:text-5xl">
@@ -80,68 +80,38 @@ export default function HeroCarousel({ banners }: HeroCarouselProps) {
                                         )}
 
                                         {banner.subtitle && (
-                                            <p className="mt-3 max-w-md text-sm leading-7 text-white/80 sm:text-base">
+                                            <p className="mt-3 max-w-md text-sm leading-7 text-white/90 sm:text-base">
                                                 {banner.subtitle}
                                             </p>
                                         )}
 
                                         {banner.link_url && (
-                                            <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-white">
+                                            <Link
+                                                href={banner.link_url}
+                                                className="group mt-5 inline-flex items-center gap-2 text-sm font-medium text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-[#0E1A24]"
+                                            >
                                                 <span>مشاهده مجموعه</span>
-                                                <span aria-hidden="true">←</span>
-                                            </span>
+                                                <span className="transition-transform duration-300 group-hover:-translate-x-1" aria-hidden="true">←</span>
+                                            </Link>
                                         )}
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Slide counter */}
-                            {hasMultiple && (
-                                <div className="absolute bottom-6 left-5 sm:left-8 lg:left-10">
-                                    <span
-                                        className="text-xs tracking-[0.15em] text-primary/65"
-                                        dir="ltr"
-                                    >
-                                        {String(index + 1).padStart(2, "0")}{" "}
-                                        <span className="mx-1">/</span>{" "}
-                                        {String(banners.length).padStart(2, "0")}
-                                    </span>
-                                </div>
-                            )}
-                        </>
-                    );
-
-                    if (banner.link_url) {
-                        return (
-                            <Link
-                                key={banner.id}
-                                href={banner.link_url}
-                                className={`group absolute inset-0 transition-opacity duration-[800ms] ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset ${isActive
-                                    ? "z-10 opacity-100"
-                                    : "pointer-events-none z-0 opacity-0"
-                                    }`}
-                                aria-hidden={!isActive}
-                                tabIndex={isActive ? 0 : -1}
-                            >
-                                {slideContent}
-                            </Link>
-                        );
-                    }
-
-                    return (
-                        <div
-                            key={banner.id}
-                            className={`absolute inset-0 transition-opacity duration-[800ms] ease-out ${isActive
-                                ? "z-10 opacity-100"
-                                : "pointer-events-none z-0 opacity-0"
-                                }`}
-                            aria-hidden={!isActive}
-                        >
-                            {slideContent}
                         </div>
-                    );
-                })}
+                    ))}
+                </div>
             </div>
+
+            {/* Editorial Counter - Moved up (bottom-20) and text reverted to white */}
+            {hasMultiple && (
+                <div className="pointer-events-none absolute bottom-20 left-5 z-10 sm:bottom-24 sm:left-8 lg:left-10">
+                    <span className="font-mono text-xs tracking-widest text-white" dir="ltr">
+                        {String(activeIndex + 1).padStart(2, "0")}
+                        <span className="mx-2 text-white/50">/</span>
+                        {String(banners.length).padStart(2, "0")}
+                    </span>
+                </div>
+            )}
         </section>
     );
 }
