@@ -14,6 +14,18 @@ export interface GuestCartItem {
     variant: { id: number; variant_name: string; price_adjustment: number; stock_quantity: number } | null;  // NEW
 }
 
+function generateUUID(): string {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    // Fallback for non-HTTPS local IP development
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
+
 function readCart(): GuestCartItem[] {
     if (typeof window === 'undefined') return [];
     try {
@@ -52,7 +64,17 @@ export function useGuestCart() {
         const existing = current.find((c) => c.product_id === product.id && c.variant_id === (variant?.id ?? null));
         const next = existing
             ? current.map((c) => (c.id === existing.id ? { ...c, quantity: c.quantity + quantity } : c))
-            : [...current, { id: crypto.randomUUID(), product_id: product.id, variant_id: variant?.id ?? null, quantity, product, variant }];
+            : [
+                ...current,
+                {
+                    id: generateUUID(),
+                    product_id: product.id,
+                    variant_id: variant?.id ?? null,
+                    quantity,
+                    product,
+                    variant,
+                },
+            ];
         writeCart(next);
     }, []);
     // updateItem / removeItem — now key off the synthetic id, not product_id

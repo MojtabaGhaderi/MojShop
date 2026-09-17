@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import * as React from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 
 export default function RegisterPage() {
     const { register, registerError, isRegisterPending } = useAuth();
-    const [form, setForm] = useState({
+    const [form, setForm] = React.useState({
         email: '',
         password: '',
         full_name: '',
         phone: '',
     });
+    const [showPassword, setShowPassword] = React.useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,70 +25,169 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="mx-auto max-w-md px-4 py-12">
-            <h1 className="text-2xl font-bold text-primary">ثبت‌نام</h1>
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-                <div>
-                    <label className="block text-sm text-primary-subtle">نام کامل</label>
-                    <input
-                        type="text"
-                        required
-                        value={form.full_name}
-                        onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                        className="mt-1 w-full rounded border border-border-default bg-surface px-3 py-2 text-primary"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm text-primary-subtle">ایمیل</label>
-                    <input
-                        type="email"
-                        required
-                        value={form.email}
-                        onChange={(e) => setForm({ ...form, email: e.target.value })}
-                        className="mt-1 w-full rounded border border-border-default bg-surface px-3 py-2 text-primary"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm text-primary-subtle">شماره موبایل</label>
-                    <input
-                        type="tel"
-                        required
-                        value={form.phone}
-                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                        className="mt-1 w-full rounded border border-border-default bg-surface px-3 py-2 text-primary"
-                        placeholder="۰۹۱۲۳۴۵۶۷۸۹"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm text-primary-subtle">رمز عبور</label>
-                    <input
-                        type="password"
-                        required
-                        minLength={6}
-                        value={form.password}
-                        onChange={(e) => setForm({ ...form, password: e.target.value })}
-                        className="mt-1 w-full rounded border border-border-default bg-surface px-3 py-2 text-primary"
-                    />
-                </div>
-                {registerError && (
-                    <p className="text-sm text-red-500">
-                        {registerError instanceof Error ? registerError.message : 'خطا در ثبت‌نام'}
-                    </p>
-                )}
-                <button
-                    type="submit"
-                    disabled={isRegisterPending}
-                    className="w-full rounded bg-accent py-2 font-medium text-white disabled:opacity-50"
+        <div className="relative min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-16 select-none" dir="rtl">
+            {/* ── Soft Ambient Glows ── */}
+            <div className="pointer-events-none absolute -top-16 end-1/4 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-12 start-1/4 h-72 w-72 rounded-full bg-[#E8DCBE]/25 blur-3xl" />
+
+            {/* ── Luxury Alabaster Card ── */}
+            <div className="relative w-full max-w-[460px] overflow-hidden rounded-3xl border border-[#E8E2D1] bg-gradient-to-b from-[#FDFCFA]/95 via-[#FAF7F0]/90 to-[#F5EFE1]/80 p-8 sm:p-10 shadow-[0_20px_60px_rgba(23,59,87,0.06)] backdrop-blur-2xl transition-all duration-300">
+
+                {/* Fine Alabaster Film-Grain Noise */}
+                <svg
+                    className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.028] mix-blend-overlay"
+                    aria-hidden="true"
                 >
-                    {isRegisterPending ? 'در حال ثبت‌نام...' : 'ثبت‌نام'}
-                </button>
-            </form>
-            <p className="mt-4 text-center text-sm text-primary-subtle">
-                قبلاً ثبت‌نام کردید؟{' '}
-                <Link href="/login" className="text-accent hover:underline">
-                    ورود
-                </Link>
-            </p>
+                    <filter id="register-grain">
+                        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch" />
+                        <feColorMatrix type="saturate" values="0" />
+                    </filter>
+                    <rect width="100%" height="100%" filter="url(#register-grain)" />
+                </svg>
+
+                {/* Inner Bevel Light */}
+                <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/90" />
+
+                <div className="relative z-10">
+                    {/* Header */}
+                    <div className="text-center">
+                        <span className="text-[11px] font-medium tracking-widest text-accent uppercase">
+                            گالری موج
+                        </span>
+                        <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                            عضویت در باشگاه مشتریان
+                        </h1>
+                        <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                            با ایجاد حساب کاربری، دسترسی اختصاصی به آثار جدید و پیگیری سفارش‌ها خواهید داشت
+                        </p>
+                    </div>
+
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+
+                        {/* Full Name */}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-semibold text-foreground tracking-wide">
+                                نام و نام خانوادگی
+                            </label>
+                            <input
+                                type="text"
+                                required
+                                value={form.full_name}
+                                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                                placeholder="مثال: سهراب سپهری"
+                                className="h-12 w-full rounded-xl border border-[#E0D8C3] bg-white/80 px-4 text-xs font-medium text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/20"
+                            />
+                        </div>
+
+                        {/* Email */}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-semibold text-foreground tracking-wide">
+                                نشانی ایمیل
+                            </label>
+                            <input
+                                type="email"
+                                required
+                                value={form.email}
+                                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                placeholder="name@example.com"
+                                dir="ltr"
+                                className="h-12 w-full rounded-xl border border-[#E0D8C3] bg-white/80 px-4 text-xs font-medium text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/20 text-left"
+                            />
+                        </div>
+
+                        {/* Phone */}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-semibold text-foreground tracking-wide">
+                                شماره موبایل
+                            </label>
+                            <input
+                                type="tel"
+                                required
+                                value={form.phone}
+                                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+                                dir="ltr"
+                                className="h-12 w-full rounded-xl border border-[#E0D8C3] bg-white/80 px-4 text-xs font-medium text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/20 text-left font-mono"
+                            />
+                        </div>
+
+                        {/* Password with Eye Toggle positioned on physical right */}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-semibold text-foreground tracking-wide">
+                                رمز عبور
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    minLength={6}
+                                    value={form.password}
+                                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                                    placeholder="حداقل ۶ کاراکتر"
+                                    dir="ltr"
+                                    className="h-12 w-full rounded-xl border border-[#E0D8C3] bg-white/80 pr-11 pl-4 text-xs font-medium text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/20 text-left"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+                                    aria-label={showPassword ? 'مخفی کردن رمز' : 'نمایش رمز'}
+                                >
+                                    {showPassword ? (
+                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                                            <line x1="1" y1="1" x2="23" y2="23" />
+                                        </svg>
+                                    ) : (
+                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                            <circle cx="12" cy="12" r="3" />
+                                        </svg>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Error Container */}
+                        {registerError && (
+                            <div className="flex items-center gap-2 rounded-xl border border-rose-300/50 bg-rose-50/70 p-3 text-xs text-rose-800 backdrop-blur-md animate-in fade-in duration-200">
+                                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                                <span>{registerError instanceof Error ? registerError.message : 'خطا در ثبت‌نام. لطفاً اطلاعات را بررسی کنید'}</span>
+                            </div>
+                        )}
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={isRegisterPending}
+                            className="mt-2 flex h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-primary px-5 text-xs font-semibold text-primary-foreground shadow-[0_4px_16px_rgba(23,59,87,0.18)] transition-all hover:bg-primary/95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {isRegisterPending ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                                    <span>در حال ایجاد حساب کاربری...</span>
+                                </div>
+                            ) : (
+                                <span>تکمیل ثبت‌نام و عضویت</span>
+                            )}
+                        </button>
+                    </form>
+
+                    {/* Footer Link */}
+                    <div className="mt-8 border-t border-[#E8E2D1]/70 pt-6 text-center">
+                        <p className="text-xs text-muted-foreground">
+                            قبلاً در گالری ثبت‌نام کرده‌اید؟{' '}
+                            <Link
+                                href="/login"
+                                className="font-semibold text-accent transition-colors hover:text-accent-hover hover:underline"
+                            >
+                                ورود به حساب کاربری
+                            </Link>
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

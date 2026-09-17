@@ -1,108 +1,121 @@
+// frontend/components/review-section.tsx
 'use client';
 
-import { useState } from 'react';
-import { useAuth } from '@/hooks/use-auth';
-import { useReviews, useCreateReview, useDeleteReview } from '@/hooks/use-reviews';
-
-function Stars({ rating, onRate }: { rating: number; onRate?: (r: number) => void }) {
-    return (
-        <div className="flex gap-0.5">
-            {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                    key={n}
-                    type="button"
-                    disabled={!onRate}
-                    onClick={() => onRate?.(n)}
-                    className={onRate ? 'cursor-pointer' : 'cursor-default'}
-                    aria-label={`${n} ستاره`}
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill={n <= rating ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" className={n <= rating ? 'text-yellow-500' : 'text-border-default'}>
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
-                    </svg>
-                </button>
-            ))}
-        </div>
-    );
-}
+import * as React from 'react';
+import { useReviews } from '@/hooks/use-reviews';
+import { cn } from '@/lib/utils';
 
 export default function ReviewSection({ slug }: { slug: string }) {
-    const { user, isAuthenticated } = useAuth();
-    const { data: reviews, isLoading } = useReviews(slug);
-    const createReview = useCreateReview(slug);
-    const deleteReview = useDeleteReview(slug);
+    const {
+        reviews = [],
+        isLoading = false,
+        averageRating = 0,
+        totalCount = 0
+    } = useReviews(slug) || {};
 
-    const [rating, setRating] = useState(0);
-    const [comment, setComment] = useState('');
-    const [error, setError] = useState<string | null>(null);
-
-    const myReview = reviews?.find((r) => r.user.id === user?.id);
-
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setError(null);
-        if (rating === 0) { setError('لطفاً امتیاز را انتخاب کنید'); return; }
-        try {
-            await createReview.mutateAsync({ rating, comment: comment.trim() || undefined });
-            setRating(0);
-            setComment('');
-        } catch {
-            setError('خطا در ثبت نظر');
-        }
-    }
-
-    function formatDate(iso: string) {
-        try {
-            return new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium' }).format(new Date(iso));
-        } catch {
-            return iso;
-        }
-    }
+    const safeReviews = Array.isArray(reviews) ? reviews : [];
+    const count = totalCount ?? safeReviews.length;
 
     return (
-        <div className="space-y-6 border-t border-border-default pt-6">
-            <h2 className="text-lg font-semibold text-primary">نظرات کاربران</h2>
+        <section className="mt-16 border-t border-border/60 pt-12 select-none" dir="rtl">
+            {/* ── 1. Reviews Header & Average Score ── */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+                <div>
+                    <span className="text-[11px] font-medium tracking-widest text-accent uppercase">
+                        تجربه خریداران
+                    </span>
+                    <h2 className="mt-1 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                        دیدگاه‌ها و نظرات
+                    </h2>
+                </div>
 
-            {isAuthenticated && !myReview && (
-                <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-border-default p-4">
-                    <Stars rating={rating} onRate={setRating} />
-                    <textarea
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        placeholder="نظر شما (اختیاری)"
-                        rows={3}
-                        className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary"
-                    />
-                    {error && <p className="text-sm text-red-500">{error}</p>}
-                    <button type="submit" disabled={createReview.isPending} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
-                        {createReview.isPending ? 'در حال ثبت...' : 'ثبت نظر'}
-                    </button>
-                </form>
+                {count > 0 && (
+                    <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/60 px-4 py-2.5 backdrop-blur-md shadow-2xs">
+                        <div className="flex items-center gap-1.5 text-amber-500">
+                            <span className="text-base font-bold font-mono">★</span>
+                            <span className="text-sm font-bold font-mono text-foreground">
+                                {Number(averageRating || 0).toFixed(1)}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground font-mono">/ ۵</span>
+                        </div>
+                        <span className="h-3.5 w-px bg-border/80" />
+                        <span className="text-xs text-muted-foreground">
+                            {count.toLocaleString('fa-IR')} دیدگاه ثبت‌شده
+                        </span>
+                    </div>
+                )}
+            </div>
+
+            {/* ── 2. Loading State ── */}
+            {isLoading && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {[1, 2].map((i) => (
+                        <div key={i} className="h-32 rounded-2xl border border-border/50 bg-muted/20 animate-pulse" />
+                    ))}
+                </div>
             )}
 
-            {isLoading && <p className="text-sm text-primary-muted">در حال بارگذاری...</p>}
-            {!isLoading && reviews?.length === 0 && <p className="text-sm text-primary-muted">هنوز نظری ثبت نشده است.</p>}
+            {/* ── 3. Empty State ── */}
+            {!isLoading && safeReviews.length === 0 && (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 bg-muted/20 py-12 text-center">
+                    <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-accent/20 text-accent">
+                        ★
+                    </div>
+                    <p className="text-xs font-medium text-foreground">هنوز دیدگاهی برای این اثر ثبت نشده است</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                        اولین نفری باشید که تجربه خود را از این دست‌ساز به اشتراک می‌گذارد.
+                    </p>
+                </div>
+            )}
 
-            <ul className="space-y-4">
-                {reviews?.map((r) => (
-                    <li key={r.id} className="border-b border-border-default pb-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-primary">{r.user.full_name ?? 'کاربر'}</p>
-                                <div className="mt-1 flex items-center gap-2">
-                                    <Stars rating={r.rating} />
-                                    <span className="text-xs text-primary-subtle">{formatDate(r.created_at)}</span>
+            {/* ── 4. Reviews Grid ── */}
+            {!isLoading && safeReviews.length > 0 && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {safeReviews.map((rev) => (
+                        <div
+                            key={rev.id}
+                            className="group relative overflow-hidden rounded-2xl border border-[#E8E2D1] bg-card/70 p-5 shadow-2xs backdrop-blur-md transition-all duration-300 hover:border-accent/50"
+                        >
+                            <div className="flex items-start justify-between gap-2 border-b border-border/40 pb-3">
+                                <div>
+                                    <span className="text-xs font-semibold text-foreground">
+                                        {rev.author_name || 'خریدار گالری'}
+                                    </span>
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                        {Array.from({ length: 5 }).map((_, idx) => (
+                                            <span
+                                                key={idx}
+                                                className={cn(
+                                                    'text-[10px]',
+                                                    idx < rev.rating ? 'text-amber-500' : 'text-border'
+                                                )}
+                                            >
+                                                ★
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
+
+                                <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[9px] font-mono text-muted-foreground">
+                                    خریدار تایید شده
+                                </span>
                             </div>
-                            {r.user.id === user?.id && (
-                                <button type="button" onClick={() => deleteReview.mutate(r.id)} className="text-xs text-red-500 hover:underline">
-                                    حذف
-                                </button>
+
+                            <p className="mt-3 text-xs leading-relaxed text-foreground/80 font-sans">
+                                {rev.comment}
+                            </p>
+
+                            {rev.created_at && (
+                                <div className="mt-4 flex justify-end">
+                                    <span className="text-[10px] font-mono text-muted-foreground">
+                                        {new Date(rev.created_at).toLocaleDateString('fa-IR')}
+                                    </span>
+                                </div>
                             )}
                         </div>
-                        {r.comment && <p className="mt-2 text-sm text-primary-muted">{r.comment}</p>}
-                    </li>
-                ))}
-            </ul>
-        </div>
+                    ))}
+                </div>
+            )}
+        </section>
     );
 }

@@ -1,3 +1,4 @@
+// frontend/components/header.tsx
 'use client';
 
 import Link from 'next/link';
@@ -11,12 +12,14 @@ import { useCartDrawer } from '@/context/cart-drawer-context';
 import { useAuth } from '@/hooks/use-auth';
 
 import MobileNav from './mobile-nav';
+import SearchModal from './search-modal';
 
 export default function Header() {
   const pathname = usePathname();
 
   const [scrolled, setScrolled] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const { itemCount } = useShopCart();
@@ -31,12 +34,21 @@ export default function Header() {
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
 
+    // Global Cmd+K / Ctrl+K search shortcut
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
-  // Structural header background logic using new Canvas tokens
   const headerBackground = scrolled
     ? 'bg-background/95 border-border shadow-sm'
     : 'bg-background/70 border-transparent';
@@ -56,7 +68,7 @@ export default function Header() {
             <button
               type="button"
               onClick={() => setMobileNavOpen(true)}
-              className="flex h-11 w-11 items-center justify-start text-foreground transition-colors hover:text-accent md:hidden"
+              className="flex h-11 w-11 items-center justify-start text-foreground transition-colors hover:text-accent md:hidden cursor-pointer"
               aria-label="باز کردن منو"
             >
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -75,11 +87,10 @@ export default function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`relative py-2 text-sm tracking-wide transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-accent'
+                    className={`relative py-2 text-sm tracking-wide transition-colors ${isActive ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-accent'
                       }`}
                   >
                     {link.label}
-                    {/* Active State Indicator using Client Blue */}
                     {isActive && (
                       <span className="absolute inset-x-0 -bottom-1 mx-auto h-px w-4 bg-accent" />
                     )}
@@ -110,23 +121,24 @@ export default function Header() {
           ====================================================== */}
           <div className="flex items-center gap-2 justify-self-end sm:gap-4">
 
-            {/* Search */}
-            <Link
-              href="/products"
-              className="flex h-11 w-11 items-center justify-center text-foreground transition-colors hover:text-accent"
-              aria-label="جستجو"
+            {/* Interactive Search Modal Trigger */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="flex h-11 w-11 cursor-pointer items-center justify-center text-foreground transition-colors hover:text-accent"
+              aria-label="جستجو (Cmd+K)"
             >
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7.5" />
                 <line x1="16.5" y1="16.5" x2="21" y2="21" />
               </svg>
-            </Link>
+            </button>
 
-            {/* Cart with Client Blue Badge */}
+            {/* Cart */}
             <button
               type="button"
               onClick={openCart}
-              className="relative flex h-11 w-11 items-center justify-center text-foreground transition-colors hover:text-accent"
+              className="relative flex h-11 w-11 cursor-pointer items-center justify-center text-foreground transition-colors hover:text-accent"
               aria-label={`سبد خرید (${itemCount} کالا)`}
             >
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -144,9 +156,7 @@ export default function Header() {
               )}
             </button>
 
-            {/* =================================================
-                AUTH - Editorial Text Links (No heavy buttons)
-            ================================================== */}
+            {/* Auth Links */}
             {isLoading ? (
               <div className="ml-2 hidden h-5 w-16 animate-pulse bg-muted sm:block" aria-hidden="true" />
             ) : isAuthenticated ? (
@@ -154,7 +164,7 @@ export default function Header() {
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((open) => !open)}
-                  className="flex h-11 items-center gap-2 text-sm text-foreground transition-colors hover:text-accent"
+                  className="flex h-11 cursor-pointer items-center gap-2 text-sm text-foreground transition-colors hover:text-accent"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="menu"
                 >
@@ -169,11 +179,11 @@ export default function Header() {
                 {userMenuOpen && (
                   <>
                     <button type="button" className="fixed inset-0 z-10 h-full w-full cursor-default" onClick={() => setUserMenuOpen(false)} aria-label="بستن منوی کاربر" />
-                    <div className="absolute end-0 top-full z-20 mt-2 w-48 rounded-sm border border-border bg-card py-1 shadow-md" role="menu">
-                      <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/10 hover:text-accent-foreground" role="menuitem">پروفایل</Link>
-                      <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/10 hover:text-accent-foreground" role="menuitem">سفارشات</Link>
+                    <div className="absolute end-0 top-full z-20 mt-2 w-48 rounded-xl border border-border bg-card py-1.5 shadow-md" role="menu">
+                      <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-xs text-foreground transition-colors hover:bg-accent/10 hover:text-accent" role="menuitem">پروفایل</Link>
+                      <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-xs text-foreground transition-colors hover:bg-accent/10 hover:text-accent" role="menuitem">سفارشات</Link>
                       <div className="my-1 border-t border-border" />
-                      <button type="button" onClick={() => { logout(); setUserMenuOpen(false); }} className="block w-full px-4 py-2.5 text-right text-sm text-destructive transition-colors hover:bg-destructive/10" role="menuitem">خروج</button>
+                      <button type="button" onClick={() => { logout(); setUserMenuOpen(false); }} className="block w-full px-4 py-2 text-right text-xs text-destructive transition-colors hover:bg-destructive/10" role="menuitem">خروج</button>
                     </div>
                   </>
                 )}
@@ -189,6 +199,10 @@ export default function Header() {
         </div>
       </header>
 
+      {/* Search Modal */}
+      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      {/* Mobile Drawer */}
       <MobileNav
         open={mobileNavOpen}
         onClose={() => setMobileNavOpen(false)}
