@@ -420,6 +420,7 @@ export type BannerPlacement = 'hero' | 'feature';
 export interface Banner {
   id: number;
   image_url: string;
+  secondary_image_url?: string | null;
   title: string | null;
   subtitle: string | null;
   link_url: string | null;
@@ -467,4 +468,12 @@ export interface SiteInfoData {
 export interface FooterConfig {
   info: SiteInfoData;
   sections: FooterSectionItem[];
+}
+
+export interface TrustBadgeItem {
+  id: number;
+  title: string;
+  description: string;
+  icon_key: string;
+  sort_order?: number;
 }

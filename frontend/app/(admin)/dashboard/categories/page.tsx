@@ -1,4 +1,4 @@
-//dashboard/categories/page.tsx
+// frontend/app/(admin)/dashboard/categories/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -40,30 +40,38 @@ function CategoryForm({
 
     return (
         <form
-            onSubmit={(e) => { e.preventDefault(); onSubmit({ name, slug, description: description || undefined, is_active: isActive, image_url: imageUrl || undefined }); }}
-            className="space-y-4"
+            onSubmit={(e) => {
+                e.preventDefault();
+                onSubmit({ name, slug, description: description || undefined, is_active: isActive, image_url: imageUrl || undefined });
+            }}
+            className="space-y-4 pt-2"
         >
-            <div className="space-y-2">
-                <Label htmlFor="cat-name">نام</Label>
-                <Input id="cat-name" value={name} onChange={(e) => handleNameChange(e.target.value)} required />
+            <div className="space-y-1.5">
+                <Label htmlFor="cat-name" className="text-xs font-semibold text-foreground">عنوان دسته</Label>
+                <Input id="cat-name" value={name} onChange={(e) => handleNameChange(e.target.value)} required className="h-10 rounded-xl border-[#E8E2D1] bg-white" />
             </div>
-            <div className="space-y-2">
-                <Label htmlFor="cat-slug">اسلاگ</Label>
-                <Input id="cat-slug" value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} required />
+            <div className="space-y-1.5">
+                <Label htmlFor="cat-slug" className="text-xs font-semibold text-foreground">اسلاگ لاتین (URL)</Label>
+                <Input id="cat-slug" dir="ltr" value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} required className="h-10 rounded-xl border-[#E8E2D1] bg-white font-mono text-xs" />
             </div>
-            <div className="space-y-2">
-                <Label htmlFor="cat-desc">توضیحات</Label>
-                <Textarea id="cat-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <div className="space-y-1.5">
+                <Label htmlFor="cat-desc" className="text-xs font-semibold text-foreground">توضیحات کوتاه</Label>
+                <Textarea id="cat-desc" value={description} onChange={(e) => setDescription(e.target.value)} className="rounded-xl border-[#E8E2D1] bg-white text-xs" />
             </div>
-            <div className="space-y-2"><Label>آدرس تصویر</Label><Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} /></div>
+            <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">آدرس تصویر جلد (Image URL)</Label>
+                <Input dir="ltr" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="h-10 rounded-xl border-[#E8E2D1] bg-white font-mono text-xs" />
+            </div>
             {category && (
-                <div className="flex items-center justify-between rounded-md border p-3">
-                    <Label htmlFor="cat-active">فعال</Label>
-                    <Switch id="cat-active" checked={isActive} onCheckedChange={setIsActive} />
+                <div className="flex items-center justify-between rounded-xl border border-[#E8E2D1] bg-white/60 p-3">
+                    <Label htmlFor="cat-active" className="text-xs font-semibold text-foreground">نمایش در سایت</Label>
+                    <Switch id="cat-active" checked={isActive} onCheckedChange={setIsActive} className="data-[state=checked]:bg-accent" />
                 </div>
             )}
-            <DialogFooter>
-                <Button type="submit" disabled={isSaving}>{isSaving ? 'در حال ذخیره...' : 'ذخیره'}</Button>
+            <DialogFooter className="pt-2">
+                <Button type="submit" disabled={isSaving} className="h-10 rounded-xl bg-accent text-white hover:bg-accent-hover shadow-2xs">
+                    {isSaving ? 'در حال ذخیره...' : 'ثبت دسته‌بندی'}
+                </Button>
             </DialogFooter>
         </form>
     );
@@ -89,15 +97,22 @@ export default function AdminCategoriesPage() {
     }
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h1 className="text-xl font-semibold">دسته‌بندی‌ها</h1>
+        <div className="space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-accent">آتلیه و ساختار</span>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">دسته‌بندی‌ها</h1>
+                </div>
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
-                        <Button><Plus className="me-2 h-4 w-4" /> افزودن دسته</Button>
+                        <Button className="h-10 rounded-xl bg-accent text-white hover:bg-accent-hover shadow-2xs">
+                            <Plus className="me-1.5 h-4 w-4" /> دسته‌بندی جدید
+                        </Button>
                     </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader><DialogTitle>دسته‌بندی جدید</DialogTitle></DialogHeader>
+                    <DialogContent className="rounded-2xl border-[#E8E2D1] bg-[#FAF7F0] sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="text-base font-bold">ایجاد دسته‌بندی جدید</DialogTitle>
+                        </DialogHeader>
                         <CategoryForm
                             category={null}
                             isSaving={createCategory.isPending}
@@ -107,33 +122,51 @@ export default function AdminCategoriesPage() {
                 </Dialog>
             </div>
 
-            {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+            {deleteError && (
+                <div className="rounded-xl border border-rose-300 bg-rose-50/80 p-3 text-xs text-rose-800 backdrop-blur-sm">
+                    {deleteError}
+                </div>
+            )}
 
-            <div className="rounded-md border">
+            <div className="overflow-hidden rounded-2xl border border-[#E8E2D1] bg-white/80 shadow-2xs backdrop-blur-md">
                 <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>نام</TableHead>
-                            <TableHead>اسلاگ</TableHead>
-                            <TableHead>وضعیت</TableHead>
-                            <TableHead className="w-24">عملیات</TableHead>
+                    <TableHeader className="bg-[#FAF7F0]/80">
+                        <TableRow className="border-[#E8E2D1] hover:bg-transparent">
+                            <TableHead className="text-xs font-semibold text-foreground">عنوان</TableHead>
+                            <TableHead className="text-xs font-semibold text-foreground">اسلاگ URL</TableHead>
+                            <TableHead className="text-xs font-semibold text-foreground">وضعیت</TableHead>
+                            <TableHead className="w-24 text-center text-xs font-semibold text-foreground">عملیات</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoading && <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">در حال بارگذاری...</TableCell></TableRow>}
+                        {isLoading && (
+                            <TableRow>
+                                <TableCell colSpan={4} className="py-12 text-center text-xs text-muted-foreground">
+                                    در حال دریافت دسته‌بندی‌ها...
+                                </TableCell>
+                            </TableRow>
+                        )}
                         {categories?.map((c) => (
-                            <TableRow key={c.id}>
-                                <TableCell className="font-medium">{c.name}</TableCell>
-                                <TableCell className="text-muted-foreground">{c.slug}</TableCell>
-                                <TableCell><Badge variant={c.is_active ? 'default' : 'secondary'}>{c.is_active ? 'فعال' : 'غیرفعال'}</Badge></TableCell>
+                            <TableRow key={c.id} className="border-[#E8E2D1]/60 transition-colors hover:bg-accent/[0.03]">
+                                <TableCell className="text-xs font-semibold text-foreground">{c.name}</TableCell>
+                                <TableCell className="font-mono text-xs text-muted-foreground">{c.slug}</TableCell>
                                 <TableCell>
-                                    <div className="flex gap-1">
+                                    <Badge className={c.is_active ? 'border-accent/30 bg-accent/15 text-accent' : 'border-[#E8E2D1] bg-muted/50 text-muted-foreground'}>
+                                        {c.is_active ? 'فعال' : 'غیرفعال'}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center justify-center gap-1">
                                         <Dialog open={editingId === c.id} onOpenChange={(o) => setEditingId(o ? c.id : null)}>
                                             <DialogTrigger asChild>
-                                                <Button size="icon" variant="ghost"><Pencil className="h-4 w-4" /></Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-accent/10 hover:text-accent">
+                                                    <Pencil className="h-3.5 w-3.5" />
+                                                </Button>
                                             </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogHeader><DialogTitle>ویرایش دسته‌بندی</DialogTitle></DialogHeader>
+                                            <DialogContent className="rounded-2xl border-[#E8E2D1] bg-[#FAF7F0] sm:max-w-md">
+                                                <DialogHeader>
+                                                    <DialogTitle className="text-base font-bold">ویرایش دسته‌بندی</DialogTitle>
+                                                </DialogHeader>
                                                 <CategoryForm
                                                     category={c}
                                                     isSaving={updateCategory.isPending}
@@ -143,16 +176,22 @@ export default function AdminCategoriesPage() {
                                         </Dialog>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <Button size="icon" variant="ghost" className="text-destructive">✕</Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-rose-50 hover:text-rose-600">
+                                                    ✕
+                                                </Button>
                                             </AlertDialogTrigger>
-                                            <AlertDialogContent>
+                                            <AlertDialogContent className="rounded-2xl border-[#E8E2D1] bg-[#FAF7F0]">
                                                 <AlertDialogHeader>
-                                                    <AlertDialogTitle>حذف دسته‌بندی؟</AlertDialogTitle>
-                                                    <AlertDialogDescription>اگر محصولی به «{c.name}» متصل باشد، حذف انجام نمی‌شود.</AlertDialogDescription>
+                                                    <AlertDialogTitle className="text-base font-bold">حذف دسته‌بندی؟</AlertDialogTitle>
+                                                    <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                                                        اگر اثری به دسته‌بندی «{c.name}» متصل باشد، به منظور جلوگیری از اختلال در کاتالوگ حذف مسدود خواهد شد.
+                                                    </AlertDialogDescription>
                                                 </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDelete(c.id)}>حذف</AlertDialogAction>
+                                                <AlertDialogFooter className="gap-2 sm:gap-0">
+                                                    <AlertDialogCancel className="rounded-xl border-[#E8E2D1]">انصراف</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(c.id)} className="rounded-xl bg-rose-600 text-white hover:bg-rose-700">
+                                                        تأیید حذف
+                                                    </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>

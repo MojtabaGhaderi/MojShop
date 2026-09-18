@@ -2,9 +2,11 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // <-- Import useRouter
 import { useAuth } from '@/hooks/use-auth';
 
 export default function LoginPage() {
+    const router = useRouter();
     const { login, loginError, isLoginPending } = useAuth();
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
@@ -14,9 +16,10 @@ export default function LoginPage() {
         e.preventDefault();
         try {
             await login({ email, password });
-            window.location.href = '/';
+            router.push('/');
+            router.refresh();
         } catch {
-            // Error handled by hook
+            // Handled by hook
         }
     };
 

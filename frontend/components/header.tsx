@@ -101,17 +101,17 @@ export default function Header() {
           </div>
 
           {/* =====================================================
-              CENTER / LOGO
-          ====================================================== */}
+    CENTER / LOGO
+====================================================== */}
           <Link href="/" aria-label={SITE_NAME} className="justify-self-center transition-opacity hover:opacity-85">
             <div className="flex items-center justify-center">
               <Image
                 src="/logo2.png"
                 alt={SITE_NAME}
-                width={400}
-                height={150}
+                width={240}
+                height={64}
                 priority
-                className="!h-14 !w-auto sm:!h-20 lg:!h-20 max-w-none"
+                className="h-10 w-auto object-contain sm:h-11 lg:h-12"
               />
             </div>
           </Link>
